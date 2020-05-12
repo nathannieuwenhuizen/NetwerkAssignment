@@ -1,9 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Assertions;
+﻿using Unity.Collections;
 using Unity.Networking.Transport;
-using Unity.Collections;
+using UnityEngine;
 
 
 //unity trnapsot doc: https://docs.unity3d.com/Packages/com.unity.transport@0.3/manual/workflow-client-server.html
@@ -58,26 +55,53 @@ public class ServerBehaviour : MonoBehaviour
         {
             m_Connections.Add(c);
             Debug.Log("Accepted a connection");
+
+            //player recieves welcome message
+            var rc = (Color32)Random.ColorHSV();
+            var message = new WelcomeMessage
+            {
+                PlayerID = c.InternalId,
+                Colour = ((uint)rc.r << 24) | ((uint)rc.g << 16) |((uint)rc.r << 8) | ((uint)rc.a )
+            };
+            var writer = m_Driver.BeginSend(c);
+            message.SerializeObject(ref writer);
+            m_Driver.EndSend(writer);
         }
 
-        DataStreamReader stream;
+        DataStreamReader reader;
         for (int i = 0; i < m_Connections.Length; i++)
         {
             if (!m_Connections[i].IsCreated)
                 continue;
             NetworkEvent.Type cmd;
-            while ((cmd = m_Driver.PopEventForConnection(m_Connections[i], out stream)) != NetworkEvent.Type.Empty)
+            while ((cmd = m_Driver.PopEventForConnection(m_Connections[i], out reader)) != NetworkEvent.Type.Empty)
             {
                 if (cmd == NetworkEvent.Type.Data)
                 {
-                    uint number = stream.ReadUInt();
-                    Debug.Log("Got " + number + " from the Client adding + 2 to it.");
+                    var messageType = (Message.MessageType)reader.ReadUShort();
+                    switch (messageType)
+                    {
+                        case Message.MessageType.newPlayer:
+                            break;
+                        case Message.MessageType.welcome:
+                            break;
+                        case Message.MessageType.setName:
+                            Debug.Log("message is recieved");
+                            var message = new SetNameMessage();
+                            message.DeserializeObject(ref reader);
+                            Debug.Log($"Welcome player: {message.Name} !");
+                            break;
+                        case Message.MessageType.requestDenied:
+                            break;
+                        case Message.MessageType.playerLeft:
+                            break;
+                        case Message.MessageType.startGame:
+                            break;
+                        case Message.MessageType.none:
+                        default:
+                            break;
+                    }
 
-                    number += 2;
-
-                    var writer = m_Driver.BeginSend(NetworkPipeline.Null, m_Connections[i]);
-                    writer.WriteUInt(number);
-                    m_Driver.EndSend(writer);
                 }
                 else if (cmd == NetworkEvent.Type.Disconnect)
                 {

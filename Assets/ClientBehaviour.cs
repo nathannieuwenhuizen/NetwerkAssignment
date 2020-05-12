@@ -3,16 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Networking.Transport;
 
-public enum MessageType
-{
-    none,
-    welcome,
-    setName,
-    requestDenied,
-    playerLeft,
-    startGame
-}
-
 public class ClientBehaviour : MonoBehaviour
 {
 
@@ -25,7 +15,8 @@ public class ClientBehaviour : MonoBehaviour
         m_Driver = NetworkDriver.Create();
         m_Connection = default(NetworkConnection);
 
-        var endpoint = NetworkEndPoint.LoopbackIpv4;
+        //var endpoint = NetworkEndPoint.LoopbackIpv4;
+        var endpoint = NetworkEndPoint.Parse("77.167.147.11", 9000);
         endpoint.Port = 9000;
         m_Connection = m_Driver.Connect(endpoint);
     }
@@ -46,26 +37,59 @@ public class ClientBehaviour : MonoBehaviour
                 Debug.Log("Something went wrong during connect");
             return;
         }
-        DataStreamReader stream;
+        DataStreamReader reader;
         NetworkEvent.Type cmd;
-        while ((cmd = m_Connection.PopEvent(m_Driver, out stream)) != NetworkEvent.Type.Empty)
+        while ((cmd = m_Connection.PopEvent(m_Driver, out reader)) != NetworkEvent.Type.Empty)
         {
             if (cmd == NetworkEvent.Type.Connect)
             {
                 Debug.Log("We are now connected to the server");
 
-                uint value = 1;
-                var writer = m_Driver.BeginSend(m_Connection);
-                writer.WriteUInt(value);
-                m_Driver.EndSend(writer);
+                //uint value = 1;
+                //var writer = m_Driver.BeginSend(m_Connection);
+                //writer.WriteUInt(value);
+                //m_Driver.EndSend(writer);
             }
             else if (cmd == NetworkEvent.Type.Data)
             {
-                uint value = stream.ReadUInt();
-                Debug.Log("Got the value = " + value + " back from the server");
-                Done = true;
-                m_Connection.Disconnect(m_Driver);
-                m_Connection = default(NetworkConnection);
+                //a data package came in!
+                var messageType = (Message.MessageType)reader.ReadUShort();
+                switch (messageType)
+                {
+                    case Message.MessageType.newPlayer:
+                        break;
+                    case Message.MessageType.welcome:
+                        var welcomeMessage = new WelcomeMessage();
+                        welcomeMessage.DeserializeObject(ref reader);
+                        Debug.Log($"recieved message, ID : {welcomeMessage.ID} , player ID: {welcomeMessage.PlayerID}, Color: {welcomeMessage.Colour} |");
+
+                        var setNameMessage = new SetNameMessage()
+                        {
+                            Name = "Casey krijgt een O"
+                        };
+                        var writer = m_Driver.BeginSend(m_Connection); 
+                        setNameMessage.SerializeObject(ref writer);
+                        m_Driver.EndSend(writer);
+
+                        break;
+                    case Message.MessageType.setName:
+                        break;
+                    case Message.MessageType.requestDenied:
+                        break;
+                    case Message.MessageType.playerLeft:
+                        break;
+                    case Message.MessageType.startGame:
+                        break;
+                    case Message.MessageType.none:
+                    default:
+                        break;
+                }
+
+                //uint value = stream.ReadUInt();
+                //Debug.Log("Got the value = " + value + " back from the server");
+                //Done = true;
+                //m_Connection.Disconnect(m_Driver);
+                //m_Connection = default(NetworkConnection);
             }
             else if (cmd == NetworkEvent.Type.Disconnect)
             {
