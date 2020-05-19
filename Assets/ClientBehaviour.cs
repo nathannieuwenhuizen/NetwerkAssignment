@@ -53,15 +53,15 @@ public class ClientBehaviour : MonoBehaviour
             else if (cmd == NetworkEvent.Type.Data)
             {
                 //a data package came in!
-                var messageType = (Message.MessageType)reader.ReadUShort();
+                var messageType = (MessageHeader.MessageType)reader.ReadUShort();
                 switch (messageType)
                 {
-                    case Message.MessageType.newPlayer:
+                    case MessageHeader.MessageType.newPlayer:
                         break;
-                    case Message.MessageType.welcome:
+                    case MessageHeader.MessageType.welcome:
                         var welcomeMessage = new WelcomeMessage();
                         welcomeMessage.DeserializeObject(ref reader);
-                        Debug.Log($"recieved message, ID : {welcomeMessage.ID} , player ID: {welcomeMessage.PlayerID}, Color: {welcomeMessage.Colour} |");
+                        //Debug.Log($"recieved message, ID : {welcomeMessage.header.ID} , player ID: {welcomeMessage.PlayerID}, Color: {welcomeMessage.Colour} |");
 
                         var setNameMessage = new SetNameMessage()
                         {
@@ -72,15 +72,15 @@ public class ClientBehaviour : MonoBehaviour
                         m_Driver.EndSend(writer);
 
                         break;
-                    case Message.MessageType.setName:
+                    case MessageHeader.MessageType.setName:
                         break;
-                    case Message.MessageType.requestDenied:
+                    case MessageHeader.MessageType.requestDenied:
                         break;
-                    case Message.MessageType.playerLeft:
+                    case MessageHeader.MessageType.playerLeft:
                         break;
-                    case Message.MessageType.startGame:
+                    case MessageHeader.MessageType.startGame:
                         break;
-                    case Message.MessageType.none:
+                    case MessageHeader.MessageType.none:
                     default:
                         break;
                 }

@@ -1,6 +1,8 @@
-﻿using Unity.Collections;
+﻿using System;
+using Unity.Collections;
 using Unity.Networking.Transport;
 using UnityEngine;
+using UnityEngine.Events;
 
 
 //unity trnapsot doc: https://docs.unity3d.com/Packages/com.unity.transport@0.3/manual/workflow-client-server.html
@@ -9,6 +11,10 @@ public class ServerBehaviour : MonoBehaviour
 
     public NetworkDriver m_Driver;
     private NativeList<NetworkConnection> m_Connections;
+
+    public NativeQueue<MessageHeader> messagesQueue;
+
+    public UnityEvent<MessageHeader>[] ServerCallbacks = new UnityEvent<MessageHeader>[(int)MessageHeader.MessageType.count - 1];
 
     // Start is called before the first frame update
     void Start()
@@ -39,6 +45,13 @@ public class ServerBehaviour : MonoBehaviour
     {
         m_Driver.ScheduleUpdate().Complete();
 
+        //dequeue messages
+        while (messagesQueue.Count > 0)
+        {
+            MessageHeader message = messagesQueue.Dequeue();
+            ServerCallbacks[(int)message.Type].Invoke(message);
+        }
+
         // Clean up connections
         for (int i = 0; i < m_Connections.Length; i++)
         {
@@ -57,11 +70,11 @@ public class ServerBehaviour : MonoBehaviour
             Debug.Log("Accepted a connection");
 
             //player recieves welcome message
-            var rc = (Color32)Random.ColorHSV();
+            var rc = (Color32)UnityEngine.Random.ColorHSV();
             var message = new WelcomeMessage
             {
                 PlayerID = c.InternalId,
-                Colour = ((uint)rc.r << 24) | ((uint)rc.g << 16) |((uint)rc.r << 8) | ((uint)rc.a )
+                Colour = ColorExtensions.ToUInt(rc) // ((uint)rc.r << 24) | ((uint)rc.g << 16) |((uint)rc.r << 8) | ((uint)rc.a )
             };
             var writer = m_Driver.BeginSend(c);
             message.SerializeObject(ref writer);
@@ -78,26 +91,29 @@ public class ServerBehaviour : MonoBehaviour
             {
                 if (cmd == NetworkEvent.Type.Data)
                 {
-                    var messageType = (Message.MessageType)reader.ReadUShort();
+                    var messageType = (MessageHeader.MessageType)reader.ReadUShort();
                     switch (messageType)
                     {
-                        case Message.MessageType.newPlayer:
+                        case MessageHeader.MessageType.newPlayer:
                             break;
-                        case Message.MessageType.welcome:
+                        case MessageHeader.MessageType.welcome:
                             break;
-                        case Message.MessageType.setName:
-                            Debug.Log("message is recieved");
-                            var message = new SetNameMessage();
-                            message.DeserializeObject(ref reader);
-                            Debug.Log($"Welcome player: {message.Name} !");
+                        case MessageHeader.MessageType.setName:
+
+                            var header = new MessageHeader();
+                            header.Message = new SetNameMessage();
+                            header.DeserializeObject(ref reader);
+                            messagesQueue.Enqueue(header);
+
+                            Debug.Log($"Welcome player: {((SetNameMessage)header.Message).Name} !");
                             break;
-                        case Message.MessageType.requestDenied:
+                        case MessageHeader.MessageType.requestDenied:
                             break;
-                        case Message.MessageType.playerLeft:
+                        case MessageHeader.MessageType.playerLeft:
                             break;
-                        case Message.MessageType.startGame:
+                        case MessageHeader.MessageType.startGame:
                             break;
-                        case Message.MessageType.none:
+                        case MessageHeader.MessageType.none:
                         default:
                             break;
                     }
