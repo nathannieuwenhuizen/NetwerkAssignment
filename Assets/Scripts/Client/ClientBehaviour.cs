@@ -11,6 +11,8 @@ public class ClientBehaviour : MonoBehaviour
 
     private JobHandle networkJobHandle;
 
+    private float aliveDelta = 0;
+    private float aliveDuration = 10;
     // Use this for initialization
     void Start()
     {
@@ -84,12 +86,33 @@ public class ClientBehaviour : MonoBehaviour
                 connection = default;
             }
         }
+        CheckAliveSend();
 
         networkJobHandle = networkDriver.ScheduleUpdate();
+    }
+
+    private void CheckAliveSend()
+    {
+        aliveDelta += Time.deltaTime;
+        if (aliveDelta > aliveDuration)
+        {
+            aliveDelta = 0;
+            StayAlive();
+        }
     }
 
     private void OnDestroy()
     {
         networkDriver.Dispose();
+    }
+
+    private void StayAlive()
+    {
+        Debug.Log("Client StayAliveSend");
+        var noneMessage = new NoneMessage();
+
+        var writer = networkDriver.BeginSend(connection);
+        noneMessage.SerializeObject(ref writer);
+        networkDriver.EndSend(writer);
     }
 }

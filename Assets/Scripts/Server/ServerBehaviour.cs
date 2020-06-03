@@ -98,6 +98,7 @@ public class ServerBehaviour : MonoBehaviour
                     switch (messageType)
                     {
                         case MessageHeader.MessageType.none:
+                            StayAlive(i);
                             break;
                         case MessageHeader.MessageType.newPlayer:
                             break;
@@ -146,6 +147,16 @@ public class ServerBehaviour : MonoBehaviour
     {
         networkDriver.Dispose();
         connections.Dispose();
+    }
+
+    private void StayAlive(int i = 0)
+    {
+        Debug.Log("Server StayAliveSend");
+        var noneMessage = new NoneMessage();
+
+        var writer = networkDriver.BeginSend(connections[i]);
+        noneMessage.SerializeObject(ref writer);
+        networkDriver.EndSend(writer);
     }
 
 }

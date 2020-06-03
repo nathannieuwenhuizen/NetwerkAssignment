@@ -28,6 +28,6 @@ public class NewPlayerMessage : MessageHeader
 
         PlayerID = reader.ReadInt();
         Colour = reader.ReadUInt();
-        PlayerName = reader.ReadString();
+        PlayerName = reader.ReadString().ToString();
     }
 }
