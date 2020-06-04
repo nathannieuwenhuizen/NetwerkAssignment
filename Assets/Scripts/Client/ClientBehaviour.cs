@@ -11,11 +11,15 @@ public class ClientBehaviour : MonoBehaviour
 
     private JobHandle networkJobHandle;
 
-    private float aliveDelta = 0;
+    private float timePassed = 0;
     private float aliveDuration = 10;
-    // Use this for initialization
+
+    public DataHolder dataHolder;
+
     void Start()
     {
+        dataHolder = GetComponent<DataHolder>();
+
         networkDriver = NetworkDriver.Create();
         connection = default;
 
@@ -25,7 +29,6 @@ public class ClientBehaviour : MonoBehaviour
         connection = networkDriver.Connect(endpoint);
     }
 
-    // Update is called once per frame
     void Update()
     {
         networkJobHandle.Complete();
@@ -51,20 +54,33 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.none:
                         break;
                     case MessageHeader.MessageType.newPlayer:
+                        var message = new NewPlayerMessage();
+                        message.DeserializeObject(ref reader);
+                        PlayerData newData = new PlayerData
+                        {
+                            playerIndex = message.PlayerID,
+                            color = UIntToColor(message.Colour),
+                            name = message.PlayerName
+                        };
+                        dataHolder.players.Add(newData);
+                        dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
+
                         break;
                     case MessageHeader.MessageType.welcome:
                         var welcomeMessage = new WelcomeMessage();
                         welcomeMessage.DeserializeObject(ref reader);
+                        dataHolder.myData.playerIndex = welcomeMessage.PlayerID;
+                        dataHolder.myData.color = UIntToColor(welcomeMessage.Colour);
 
                         Debug.Log("Got a welcome message");
 
-                        var setNameMessage = new SetNameMessage
-                        {
-                            Name = "Vincent"
-                        };
-                        var writer = networkDriver.BeginSend(connection);
-                        setNameMessage.SerializeObject(ref writer);
-                        networkDriver.EndSend(writer);
+                        //var setNameMessage = new SetNameMessage
+                        //{
+                        //    Name = "Vincent"
+                        //};
+                        //var writer = networkDriver.BeginSend(connection);
+                        //setNameMessage.SerializeObject(ref writer);
+                        //networkDriver.EndSend(writer);
                         break;
                     case MessageHeader.MessageType.setName:
                         break;
@@ -93,13 +109,23 @@ public class ClientBehaviour : MonoBehaviour
 
     private void CheckAliveSend()
     {
-        aliveDelta += Time.deltaTime;
-        if (aliveDelta > aliveDuration)
+        timePassed += Time.deltaTime;
+        if (timePassed > aliveDuration)
         {
-            aliveDelta = 0;
+            timePassed = 0;
             StayAlive();
         }
+    } 
+
+    private Color UIntToColor(uint color)
+    {
+        byte r = (byte)(color >> 24);
+        byte g = (byte)(color >> 16);
+        byte b = (byte)(color >> 8);
+        byte a = (byte)(color >> 0);
+        return new Color(r, g, b, a);
     }
+
 
     private void OnDestroy()
     {
@@ -111,8 +137,15 @@ public class ClientBehaviour : MonoBehaviour
         Debug.Log("Client StayAliveSend");
         var noneMessage = new NoneMessage();
 
+        SendMessage(noneMessage);
+    }
+
+    public void SendMessage(MessageHeader message)
+    {
+        networkJobHandle.Complete();
+
         var writer = networkDriver.BeginSend(connection);
-        noneMessage.SerializeObject(ref writer);
+        message.SerializeObject(ref writer);
         networkDriver.EndSend(writer);
     }
 }

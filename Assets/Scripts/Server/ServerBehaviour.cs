@@ -14,6 +14,8 @@ public class ServerBehaviour : MonoBehaviour
 
     private NetworkDriver networkDriver;
 
+    private DataHolder serverDataHolder;
+
     private NativeList<NetworkConnection> connections;
 
     private JobHandle networkJobHandle;
@@ -25,6 +27,8 @@ public class ServerBehaviour : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        serverDataHolder = new DataHolder();
+
         networkDriver = NetworkDriver.Create();
         NetworkEndPoint endPoint = NetworkEndPoint.AnyIpv4; //might use var instead
         endPoint.Port = 9000;
@@ -53,6 +57,10 @@ public class ServerBehaviour : MonoBehaviour
         Debug.Log($"Got a name: {(message as SetNameMessage).Name}");
     }
 
+    private uint colorTouint(Color32 colour)
+    {
+        return ((uint)colour.r << 24) | ((uint)colour.g << 16) | ((uint)colour.b << 8) | colour.a;
+    }
     void Update()
     {
         networkJobHandle.Complete();
@@ -66,22 +74,60 @@ public class ServerBehaviour : MonoBehaviour
             }
         }
 
-        NetworkConnection c;
-        while ((c = networkDriver.Accept()) != default)
+        NetworkConnection newConnection;
+        while ((newConnection = networkDriver.Accept()) != default)
         {
-            connections.Add(c);
-            Debug.Log("Accepted connection");
+            connections.Add(newConnection);
+            Debug.Log("Accepted new connection");
 
+
+            //new player data is set
             var colour = (Color32)Color.magenta;
-            var message = new WelcomeMessage
+            var playerID = newConnection.InternalId;
+            var welcomeMessage = new WelcomeMessage
             {
-                PlayerID = c.InternalId,
+
+                PlayerID = playerID,
                 Colour = ((uint)colour.r << 24) | ((uint)colour.g << 16) | ((uint)colour.b << 8) | colour.a
             };
+            SendMessage(welcomeMessage, newConnection);
 
-            var writer = networkDriver.BeginSend(c);
-            message.SerializeObject(ref writer);
-            networkDriver.EndSend(writer);
+            //save it to list
+            PlayerData newData = new PlayerData();
+            newData.color = colour;
+            newData.playerIndex = playerID;
+            if (serverDataHolder.players == null) { serverDataHolder.players = new List<PlayerData>(); }
+            serverDataHolder.players.Add(newData);
+
+
+            ////send all players the info of new player
+            //NewPlayerMessage newPlayermessage = new NewPlayerMessage
+            //{
+            //    PlayerID = playerID,
+            //    Colour = colorTouint((Color32)colour),
+            //    PlayerName = "unnamed"
+            //};
+            //SendMessageToAll(newPlayermessage);
+
+
+            ////send the other player date to the new connection 
+            //foreach (NetworkConnection conn in connections)
+            //{
+            //    if (conn == newConnection) return;
+
+            //    PlayerData otherPlayerData = GetPlayerData(conn);
+            //    if (otherPlayerData.name == "") return;
+
+            //    NewPlayerMessage otherPlayerMessage = new NewPlayerMessage
+            //    {
+            //        PlayerID = otherPlayerData.playerIndex,
+            //        Colour = colorTouint((Color32)otherPlayerData.color),
+            //        PlayerName = otherPlayerData.name
+            //    };
+            //    SendMessage(otherPlayerMessage, newConnection);
+            //}
+
+
         }
 
         DataStreamReader reader;
@@ -100,7 +146,7 @@ public class ServerBehaviour : MonoBehaviour
                         case MessageHeader.MessageType.none:
                             StayAlive(i);
                             break;
-                        case MessageHeader.MessageType.newPlayer:
+                        case MessageHeader.MessageType.newPlayer: 
                             break;
                         case MessageHeader.MessageType.welcome:
                             break;
@@ -108,6 +154,12 @@ public class ServerBehaviour : MonoBehaviour
                             var message = new SetNameMessage();
                             message.DeserializeObject(ref reader);
                             messagesQueue.Enqueue(message);
+
+                            PlayerData newPlayerData = GetPlayerData(connections[i]);
+                            newPlayerData.name = message.Name;
+
+                            NewPlayerJoined(connections[i]);
+
                             break;
                         case MessageHeader.MessageType.requestDenied:
                             break;
@@ -123,6 +175,12 @@ public class ServerBehaviour : MonoBehaviour
                 }
                 else if (cmd == NetworkEvent.Type.Disconnect)
                 {
+                    PlayerLeftMessage playerLeftMessage = new PlayerLeftMessage
+                    {
+                        PlayerLeftID = i
+                    };
+
+                    SendMessageToAll(playerLeftMessage);
                     Debug.Log("Client disconnected");
                     connections[i] = default;
                 }
@@ -134,6 +192,40 @@ public class ServerBehaviour : MonoBehaviour
         ProcessMessagesQueue();
     }
 
+    public void NewPlayerJoined(NetworkConnection newPlayerConnection)
+    {
+        PlayerData newPlayerData = GetPlayerData(newPlayerConnection);
+
+
+        //send all players the info of new player
+        NewPlayerMessage newPlayermessage = new NewPlayerMessage
+        {
+            PlayerID = newPlayerData.playerIndex,
+            Colour = colorTouint((Color32)newPlayerData.color),
+            PlayerName = newPlayerData.name
+        };
+        SendMessageToAll(newPlayermessage);
+
+
+        //send the other player date to the new connection 
+        foreach (NetworkConnection conn in connections)
+        {
+            if (conn == newPlayerConnection) return;
+
+            PlayerData otherPlayerData = GetPlayerData(conn);
+            if (otherPlayerData.name == "") return;
+
+            NewPlayerMessage otherPlayerMessage = new NewPlayerMessage
+            {
+                PlayerID = otherPlayerData.playerIndex,
+                Colour = colorTouint((Color32)otherPlayerData.color),
+                PlayerName = otherPlayerData.name
+            };
+            SendMessage(otherPlayerMessage, newPlayerConnection);
+        }
+
+    }
+
     private void ProcessMessagesQueue()
     {
         while (messagesQueue.Count > 0)
@@ -143,20 +235,62 @@ public class ServerBehaviour : MonoBehaviour
         }
     }
 
+    private PlayerData GetPlayerData(NetworkConnection connection)
+    {
+        foreach(PlayerData data in serverDataHolder.players)
+        {
+            if (data.playerIndex == connection.InternalId)
+            {
+                return data;
+            }
+        }
+        return null;
+    }
+
     private void OnDestroy()
     {
         networkDriver.Dispose();
         connections.Dispose();
     }
 
-    private void StayAlive(int i = 0)
+    private void StayAlive(int i)
     {
         Debug.Log("Server StayAliveSend");
         var noneMessage = new NoneMessage();
 
-        var writer = networkDriver.BeginSend(connections[i]);
-        noneMessage.SerializeObject(ref writer);
+        SendMessage(noneMessage, connections[i]);
+
+        //var writer = networkDriver.BeginSend(connections[i]);
+        //noneMessage.SerializeObject(ref writer);
+        //networkDriver.EndSend(writer);
+    }
+
+
+    public NewPlayerMessage CreateNewPlayerMessage(NetworkConnection connection)
+    {
+        PlayerData newPlayerData = GetPlayerData(connection);
+
+        NewPlayerMessage result = new NewPlayerMessage
+        {
+            PlayerID = newPlayerData.playerIndex,
+            Colour = colorTouint((Color32)newPlayerData.color),
+            PlayerName = newPlayerData.name
+        };
+        return result;
+    }
+    public void SendMessage(MessageHeader message, NetworkConnection connection)
+    {
+        var writer = networkDriver.BeginSend(connection);
+        message.SerializeObject(ref writer);
         networkDriver.EndSend(writer);
+
+    }
+    public void SendMessageToAll(MessageHeader message)
+    {
+        for(int i = 0; i < connections.Length; i++)
+        {
+            SendMessage(message, connections[i]);
+        }
     }
 
 }

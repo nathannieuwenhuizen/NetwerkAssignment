@@ -1,4 +1,5 @@
 ﻿using Unity.Networking.Transport;
+using UnityEngine;
 
 public class NoneMessage : MessageHeader
 {
@@ -6,6 +7,7 @@ public class NoneMessage : MessageHeader
 
     public override void SerializeObject(ref DataStreamWriter writer)
     {
+        //Debug.Log("nonmessage serialized");
         base.SerializeObject(ref writer);
     }
 
