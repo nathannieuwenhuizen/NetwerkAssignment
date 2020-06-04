@@ -98,36 +98,6 @@ public class ServerBehaviour : MonoBehaviour
             newData.playerIndex = playerID;
             if (serverDataHolder.players == null) { serverDataHolder.players = new List<PlayerData>(); }
             serverDataHolder.players.Add(newData);
-
-
-            ////send all players the info of new player
-            //NewPlayerMessage newPlayermessage = new NewPlayerMessage
-            //{
-            //    PlayerID = playerID,
-            //    Colour = colorTouint((Color32)colour),
-            //    PlayerName = "unnamed"
-            //};
-            //SendMessageToAll(newPlayermessage);
-
-
-            ////send the other player date to the new connection 
-            //foreach (NetworkConnection conn in connections)
-            //{
-            //    if (conn == newConnection) return;
-
-            //    PlayerData otherPlayerData = GetPlayerData(conn);
-            //    if (otherPlayerData.name == "") return;
-
-            //    NewPlayerMessage otherPlayerMessage = new NewPlayerMessage
-            //    {
-            //        PlayerID = otherPlayerData.playerIndex,
-            //        Colour = colorTouint((Color32)otherPlayerData.color),
-            //        PlayerName = otherPlayerData.name
-            //    };
-            //    SendMessage(otherPlayerMessage, newConnection);
-            //}
-
-
         }
 
         DataStreamReader reader;
@@ -190,6 +160,16 @@ public class ServerBehaviour : MonoBehaviour
         networkJobHandle = networkDriver.ScheduleUpdate();
 
         ProcessMessagesQueue();
+    }
+
+    public void StartGame()
+    {
+        networkJobHandle.Complete();
+        StartGameMessage startMessage = new StartGameMessage
+        {
+            StartHP = 10
+        };
+        SendMessageToAll(startMessage);
     }
 
     public void NewPlayerJoined(NetworkConnection newPlayerConnection)
@@ -259,10 +239,6 @@ public class ServerBehaviour : MonoBehaviour
         var noneMessage = new NoneMessage();
 
         SendMessage(noneMessage, connections[i]);
-
-        //var writer = networkDriver.BeginSend(connections[i]);
-        //noneMessage.SerializeObject(ref writer);
-        //networkDriver.EndSend(writer);
     }
 
 

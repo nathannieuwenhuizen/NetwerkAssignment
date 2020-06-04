@@ -23,4 +23,5 @@ public class PlayerData
     public int playerIndex;
     public string name;
     public Color color;
+    public int hp;
 }

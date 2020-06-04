@@ -54,41 +54,21 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.none:
                         break;
                     case MessageHeader.MessageType.newPlayer:
-                        var message = new NewPlayerMessage();
-                        message.DeserializeObject(ref reader);
-                        PlayerData newData = new PlayerData
-                        {
-                            playerIndex = message.PlayerID,
-                            color = UIntToColor(message.Colour),
-                            name = message.PlayerName
-                        };
-                        dataHolder.players.Add(newData);
-                        dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
+                        PlayerJoined(ref reader);
 
                         break;
                     case MessageHeader.MessageType.welcome:
-                        var welcomeMessage = new WelcomeMessage();
-                        welcomeMessage.DeserializeObject(ref reader);
-                        dataHolder.myData.playerIndex = welcomeMessage.PlayerID;
-                        dataHolder.myData.color = UIntToColor(welcomeMessage.Colour);
-
-                        Debug.Log("Got a welcome message");
-
-                        //var setNameMessage = new SetNameMessage
-                        //{
-                        //    Name = "Vincent"
-                        //};
-                        //var writer = networkDriver.BeginSend(connection);
-                        //setNameMessage.SerializeObject(ref writer);
-                        //networkDriver.EndSend(writer);
+                        WelcomeFromServer(ref reader);
                         break;
                     case MessageHeader.MessageType.setName:
                         break;
                     case MessageHeader.MessageType.requestDenied:
                         break;
                     case MessageHeader.MessageType.playerLeft:
+                        PlayerLeft(ref reader);
                         break;
                     case MessageHeader.MessageType.startGame:
+                        StartGame(ref reader);
                         break;
                     case MessageHeader.MessageType.count:
                         break;
@@ -105,6 +85,51 @@ public class ClientBehaviour : MonoBehaviour
         CheckAliveSend();
 
         networkJobHandle = networkDriver.ScheduleUpdate();
+    }
+
+    private void WelcomeFromServer(ref DataStreamReader reader)
+    {
+        var welcomeMessage = new WelcomeMessage();
+        welcomeMessage.DeserializeObject(ref reader);
+        dataHolder.myData.playerIndex = welcomeMessage.PlayerID;
+        dataHolder.myData.color = UIntToColor(welcomeMessage.Colour);
+
+        Debug.Log("Got a welcome message");
+    }
+
+
+
+    private void StartGame(ref DataStreamReader reader)
+    {
+        var startGameMessage = new StartGameMessage();
+        startGameMessage.DeserializeObject(ref reader);
+        dataHolder.myData.hp = startGameMessage.StartHP;
+        dataHolder.lobby.StartGame();
+    }
+
+
+
+    private void PlayerLeft(ref DataStreamReader reader)
+    {
+        var playerLeftMessage = new PlayerLeftMessage();
+        playerLeftMessage.DeserializeObject(ref reader);
+
+        PlayerData removedData = dataHolder.players.Find(x => x.playerIndex == playerLeftMessage.PlayerLeftID);
+        dataHolder.players.Remove(removedData);
+        dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
+    }
+    private void PlayerJoined(ref DataStreamReader reader)
+    {
+        var message = new NewPlayerMessage();
+        message.DeserializeObject(ref reader);
+        PlayerData newData = new PlayerData
+        {
+            playerIndex = message.PlayerID,
+            color = UIntToColor(message.Colour),
+            name = message.PlayerName
+        };
+        dataHolder.players.Add(newData);
+        dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
     }
 
     private void CheckAliveSend()
@@ -131,6 +156,7 @@ public class ClientBehaviour : MonoBehaviour
     {
         networkDriver.Dispose();
     }
+
 
     private void StayAlive()
     {

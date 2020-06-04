@@ -65,6 +65,18 @@ public class Lobby : MonoBehaviour
         clientB.SendMessage(setNameMessage);
     }
 
+    public void StartGame()
+    {
+        gameObject.SetActive(false);
+    }
+
+    public void StartButtonClicked()
+    {
+        if (clientB.GetComponent<ServerBehaviour>() != null) {
+            clientB.GetComponent<ServerBehaviour>().StartGame();
+        }
+    }
+
     public void UpdateLobby(PlayerData[] datas)
     {
         startButton.SetActive(isHost && datas.Length != 0);
