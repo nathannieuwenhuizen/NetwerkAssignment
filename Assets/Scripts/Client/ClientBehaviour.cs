@@ -55,12 +55,9 @@ public class ClientBehaviour : MonoBehaviour
                         break;
                     case MessageHeader.MessageType.newPlayer:
                         PlayerJoined(ref reader);
-
                         break;
                     case MessageHeader.MessageType.welcome:
                         WelcomeFromServer(ref reader);
-                        break;
-                    case MessageHeader.MessageType.setName:
                         break;
                     case MessageHeader.MessageType.requestDenied:
                         break;
@@ -70,7 +67,8 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.startGame:
                         StartGame(ref reader);
                         break;
-                    case MessageHeader.MessageType.count:
+                    case MessageHeader.MessageType.roomInfo:
+                        GetRoomInfo(ref reader);
                         break;
                     default:
                         break;
@@ -86,7 +84,7 @@ public class ClientBehaviour : MonoBehaviour
 
         networkJobHandle = networkDriver.ScheduleUpdate();
     }
-
+     
     private void WelcomeFromServer(ref DataStreamReader reader)
     {
         var welcomeMessage = new WelcomeMessage();
@@ -97,6 +95,13 @@ public class ClientBehaviour : MonoBehaviour
         Debug.Log("Got a welcome message");
     }
 
+    private void GetRoomInfo(ref DataStreamReader reader)
+    {
+        var roomInfoMessage = new RoomInfoMessage();
+        roomInfoMessage.DeserializeObject(ref reader);
+
+        dataHolder.game.UpdateRoom(roomInfoMessage);
+    }
 
 
     private void StartGame(ref DataStreamReader reader)
@@ -104,7 +109,7 @@ public class ClientBehaviour : MonoBehaviour
         var startGameMessage = new StartGameMessage();
         startGameMessage.DeserializeObject(ref reader);
         dataHolder.myData.hp = startGameMessage.StartHP;
-        dataHolder.lobby.StartGame();
+        dataHolder.StartGame();
     }
 
 
@@ -144,16 +149,24 @@ public class ClientBehaviour : MonoBehaviour
 
     private Color UIntToColor(uint color)
     {
-        byte r = (byte)(color >> 24);
-        byte g = (byte)(color >> 16);
-        byte b = (byte)(color >> 8);
-        byte a = (byte)(color >> 0);
-        return new Color(r, g, b, a);
+        float r = (byte)(color >> 24);
+        float g = (byte)(color >> 16);
+        float b = (byte)(color >> 8);
+        float a = (byte)(color >> 0);
+        //Debug.Log("uint = " + color);
+        //Debug.Log("r = " + r);
+        //Debug.Log("g = " + g);
+        //Debug.Log("b = " + b);
+        //Debug.Log("a = " + a);
+
+        return new Color(r / 255, g / 255, b / 255, a / 255);
     }
 
 
     private void OnDestroy()
     {
+        networkJobHandle.Complete();
+
         networkDriver.Dispose();
     }
 

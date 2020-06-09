@@ -12,7 +12,7 @@ public class RoomInfoMessage : MessageHeader
     public byte ContainsMonster { get; set; }
     public byte ContainsExit { get; set; }
     public byte NumberOfOtherPlayers { get; set; }
-    public int OtherPLayerIDs { get; set; }
+    public List<int> OtherPlayerIDs { get; set; } = new List<int>();
     
     public override void SerializeObject(ref DataStreamWriter writer)
     {
@@ -23,7 +23,10 @@ public class RoomInfoMessage : MessageHeader
         writer.WriteByte(ContainsMonster);
         writer.WriteByte(ContainsExit);
         writer.WriteByte(NumberOfOtherPlayers);
-        writer.WriteInt(OtherPLayerIDs);
+        for(int i = 0; i < NumberOfOtherPlayers; i++)
+        {
+            writer.WriteInt(OtherPlayerIDs[i]);
+        }
     }
 
     public override void DeserializeObject(ref DataStreamReader reader)
@@ -35,6 +38,11 @@ public class RoomInfoMessage : MessageHeader
         ContainsMonster = reader.ReadByte();
         ContainsExit = reader.ReadByte();
         NumberOfOtherPlayers = reader.ReadByte();
-        OtherPLayerIDs = reader.ReadInt();
+
+        OtherPlayerIDs = new List<int>();
+        for (int i = 0; i < NumberOfOtherPlayers; i++)
+        {
+            OtherPlayerIDs.Add(reader.ReadInt());
+        }
     }
 }

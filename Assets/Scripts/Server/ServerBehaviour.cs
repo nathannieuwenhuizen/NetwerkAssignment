@@ -14,7 +14,7 @@ public class ServerBehaviour : MonoBehaviour
 
     private NetworkDriver networkDriver;
 
-    private DataHolder serverDataHolder;
+    private ServerDataHolder serverDataHolder;
 
     private NativeList<NetworkConnection> connections;
 
@@ -27,7 +27,7 @@ public class ServerBehaviour : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        serverDataHolder = new DataHolder();
+        serverDataHolder = new ServerDataHolder();
 
         networkDriver = NetworkDriver.Create();
         NetworkEndPoint endPoint = NetworkEndPoint.AnyIpv4; //might use var instead
@@ -82,7 +82,10 @@ public class ServerBehaviour : MonoBehaviour
 
 
             //new player data is set
-            var colour = (Color32)Color.magenta;
+            //Color col = Random.ColorHSV(); 
+            Color col = ColorExtensions.colors[ (ColorExtensions.RandomStartIndex + newConnection.InternalId) % ColorExtensions.colors.Length];
+            col.a = 1;
+            var colour =(Color32)col;   
             var playerID = newConnection.InternalId;
             var welcomeMessage = new WelcomeMessage
             {
@@ -98,6 +101,9 @@ public class ServerBehaviour : MonoBehaviour
             newData.playerIndex = playerID;
             if (serverDataHolder.players == null) { serverDataHolder.players = new List<PlayerData>(); }
             serverDataHolder.players.Add(newData);
+
+            Debug.Log("server data holder players count: " + serverDataHolder.players.Count);
+
         }
 
         DataStreamReader reader;
@@ -170,7 +176,17 @@ public class ServerBehaviour : MonoBehaviour
             StartHP = 10
         };
         SendMessageToAll(startMessage);
-    }
+
+        //enviroment data is setup
+        serverDataHolder.GameSetup();
+
+        //everyone gets a rooms info message.
+        for(int i = 0; i < connections.Length; i++)
+        {
+            RoomInfoMessage startRoomMessage = serverDataHolder.GetRoomMessage(i);
+            SendMessage(startRoomMessage, connections[i]);
+        }
+    } 
 
     public void NewPlayerJoined(NetworkConnection newPlayerConnection)
     {
@@ -254,6 +270,7 @@ public class ServerBehaviour : MonoBehaviour
         };
         return result;
     }
+
     public void SendMessage(MessageHeader message, NetworkConnection connection)
     {
         var writer = networkDriver.BeginSend(connection);
@@ -268,5 +285,6 @@ public class ServerBehaviour : MonoBehaviour
             SendMessage(message, connections[i]);
         }
     }
+
 
 }
