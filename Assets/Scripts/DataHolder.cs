@@ -11,6 +11,7 @@ public class DataHolder : MonoBehaviour
 
     public Lobby lobby;
     public Game game;
+    public ClientBehaviour client;
 
     void Start()
     {
@@ -24,7 +25,7 @@ public class DataHolder : MonoBehaviour
         lobby.gameObject.SetActive(false);
         game = Instantiate(Resources.Load<GameObject>("Game") as GameObject).GetComponent<Game>();
         game.cRoom.dataHolder = this;
-
+        game.dataHolder = this;
         game.SetupGame();
     }
 

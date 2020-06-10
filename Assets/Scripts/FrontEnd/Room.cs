@@ -2,39 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
-
-[Flags]
-public enum DirectionEnum
-{
-    North = 1,
-    East = 2,
-    South = 4,
-    West = 8
-}
-
-public class Directions
-{
-    public bool North;
-    public bool East;
-    public bool South;
-    public bool West;
-}
 
 public class Room : MonoBehaviour
 {
 
-    public byte directionByte;
+    public RoomData roomData = new RoomData();
 
-    public Directions directions = new Directions();
-    public int treasureAmmount = 0;
-    public bool containsMonster = false;
-    public bool containsExit = false;
-    public int numberOfOtherPlayers = 0;
-    public List<int> otherPlayersIDs = new List<int>();
-
+    //ui
     [Space]
-    [Header("UI elements")]
+    [Header("Gameobject elements")]
     [SerializeField]
     private GameObject monster;
     [SerializeField]
@@ -42,15 +20,18 @@ public class Room : MonoBehaviour
     [SerializeField]
     private GameObject treasure;
     [SerializeField]
-    private GameObject[] doors;
+    private ButtonObject[] doors;
     [SerializeField]
     private GameObject[] otherPlayerObjects;
-     
     [SerializeField]
     private GameObject myPlayerObj;
 
-    private List<PlayerData> otherPlayersInRoom;
+    [SerializeField]
+    private GameObject buttonParent;
+    [SerializeField]
+    private Text turnText;
 
+    private List<PlayerData> otherPlayersInRoom;
     public DataHolder dataHolder;
 
     void Start()
@@ -60,49 +41,63 @@ public class Room : MonoBehaviour
 
     public void UpdateInfo(RoomInfoMessage message)
     {
-        treasureAmmount = message.TreasureRoom;
-        containsMonster = message.ContainsMonster == 1;
-        containsExit = message.ContainsExit == 1;
-        numberOfOtherPlayers = message.NumberOfOtherPlayers;
-        otherPlayersIDs = message.OtherPlayerIDs;
-        directions = ReadDirectionByte(message.MoveDirections);
-        UpdateRoom();
+
+        roomData.treasureAmmount = message.TreasureRoom;
+        roomData.containsMonster = message.ContainsMonster == 1;
+        roomData.containsExit = message.ContainsExit == 1;
+        roomData.numberOfOtherPlayers = message.NumberOfOtherPlayers;
+        roomData.otherPlayersIDs = message.OtherPlayerIDs;
+        roomData.directions = roomData.ReadDirectionByte(message.MoveDirections);
+        UpdateRoom(); 
 
     }
 
     private void UpdateRoom()
     {
         //update room
-        doors[0].SetActive(directions.North);
-        doors[1].SetActive(directions.East);
-        doors[2].SetActive(directions.South);
-        doors[3].SetActive(directions.West);
+        doors[0].obj.SetActive(roomData.directions.North);
+        doors[1].obj.SetActive(roomData.directions.East);
+        doors[2].obj.SetActive(roomData.directions.South);
+        doors[3].obj.SetActive(roomData.directions.West);
 
-        monster.SetActive(containsMonster);
-        exit.SetActive(containsExit);
+        monster.SetActive(roomData.containsMonster);
+        exit.SetActive(roomData.containsExit);
 
-        treasure.SetActive(treasureAmmount > 0);
+        treasure.SetActive(roomData.treasureAmmount > 0);
 
 
         //update the player count
         if (otherPlayersInRoom == null) { otherPlayersInRoom = new List<PlayerData>(); }
         otherPlayersInRoom.Clear();
         UpdatePlayerUI();
-        Debug.Log("otherd ids count" + otherPlayersIDs.Count);
-        foreach (int id in otherPlayersIDs)
+
+        Debug.Log("otherd ids count" + roomData.otherPlayersIDs.Count);
+        foreach (int id in roomData.otherPlayersIDs)
         {
-            PlayerJoined(dataHolder.players.Find(x => x.playerIndex == id));
+            PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == id));
         } 
     }
 
-    public void PlayerJoined(PlayerData data)
+    public void UpdateUI(bool myTurn, int playerID)
+    {
+        buttonParent.SetActive(myTurn);
+
+        foreach(ButtonObject door in doors)
+        {
+            door.SetButtons(myTurn);
+        }
+
+        turnText.text = myTurn ? "Your turn!" : "Player #" + playerID + "'s turn...";
+    }
+
+    public void PlayerJoinedRoom(PlayerData data)
     {
         if (otherPlayersInRoom.Contains(data)) { return; }
         otherPlayersInRoom.Add(data);
 
         UpdatePlayerUI();
     }
-    public void PleayerLeave(PlayerData data)
+    public void PlayerLeftRoom(PlayerData data)
     {
         if (!otherPlayersInRoom.Contains(data)) { return; }
         otherPlayersInRoom.Remove(data);
@@ -129,26 +124,18 @@ public class Room : MonoBehaviour
             }
         }
     }
+}
 
-    public Directions ReadDirectionByte(byte dirs)
+[System.Serializable]
+public class ButtonObject {
+    public GameObject obj;
+    public Button[] buttons;
+
+    public void SetButtons(bool val)
     {
-        return new Directions
+        for(int i = 0; i < buttons.Length; i++)
         {
-            North = (dirs & (byte)DirectionEnum.North) == (byte)DirectionEnum.North,
-            East = (dirs & (byte)DirectionEnum.East) == (byte)DirectionEnum.East,
-            South = (dirs & (byte)DirectionEnum.South) == (byte)DirectionEnum.South,
-            West = (dirs & (byte)DirectionEnum.West) == (byte)DirectionEnum.West
-        };
-    }
-
-    public byte GetDirsByte()
-    {
-        byte answer = 0;
-        if (directions.North) answer |= (byte)DirectionEnum.North;
-        if (directions.East) answer |= (byte)DirectionEnum.East;
-        if (directions.South) answer |= (byte)DirectionEnum.South;
-        if (directions.West) answer |= (byte)DirectionEnum.West;
-
-        return answer;
+            buttons[i].gameObject.SetActive(val && obj.gameObject.activeSelf);
+        }
     }
 }

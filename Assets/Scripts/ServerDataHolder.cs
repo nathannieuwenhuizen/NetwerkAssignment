@@ -8,11 +8,12 @@ using UnityEngine.SceneManagement;
 public class ServerDataHolder : MonoBehaviour
 {
 
-    public List<PlayerData> players;
-    public Room[,] rooms;
+    public List<PlayerData> players; 
+    public RoomData[,] rooms;
     public int[] startIndex;
     public int roomSize = 3;
 
+    public int turnID = 0;
     void Start()
     {
         players = new List<PlayerData>();
@@ -20,13 +21,13 @@ public class ServerDataHolder : MonoBehaviour
 
     private void CreateRoomData()
     {
-        rooms = new Room[roomSize, roomSize];
+        rooms = new RoomData[roomSize, roomSize];
 
         for (int x = 0; x < roomSize; x++)
         {
             for (int y = 0; y < roomSize; y++)
             {
-                Room newRoom = new Room()
+                RoomData newRoom = new RoomData()
                 {
                     directions = new Directions //set boundaries to rooms
                     {
@@ -40,6 +41,49 @@ public class ServerDataHolder : MonoBehaviour
             }
         }
     }
+
+    //gets the room that is connected to the previous room if its not out of boundaries and has a door connected to it.
+    public int[] GetNextRoomID(RoomData previousRoom, byte dirByte)
+    {
+        int[] result = null;
+        int[] index = Tools.FindIndex(rooms, result); //needs testing!
+        int xPos = index[0];
+        int yPos = index[0];
+        Debug.Log("currentRoom index: "+ index.Length);
+        DirectionEnum directionEnum = (DirectionEnum)dirByte;
+        Debug.Log("direction enum: " + directionEnum);
+        switch (directionEnum)
+        {
+            case DirectionEnum.North:
+                if (previousRoom.directions.North && yPos >  0)
+                {
+                    result = new int[]{ xPos, yPos - 1};
+                }
+                break;
+            case DirectionEnum.East:
+                if (previousRoom.directions.East && xPos < roomSize - 1)
+                {
+                    result = new int[] { xPos + 1, yPos };
+                }
+                break;
+            case DirectionEnum.South:
+                if (previousRoom.directions.South && yPos < roomSize - 1)
+                {
+                    result = new int[] { xPos, yPos + 1 };
+                }
+                break;
+            case DirectionEnum.West:
+                if (previousRoom.directions.East && xPos > 0)
+                {
+                    result = new int[] { xPos - 1, yPos };
+                }
+                break;
+            default:
+                break;
+        }
+        return result;
+    }
+
 
     public void GameSetup()
     {
@@ -59,7 +103,7 @@ public class ServerDataHolder : MonoBehaviour
 
         //get room data
         int[] roomIndex = data.roomID;
-        Room room = rooms[roomIndex[0], roomIndex[1]];
+        RoomData room = rooms[roomIndex[0], roomIndex[1]];
 
         List<int> otherPlayerIDs = GetOtherPlayerIDsInSameRoom(data);
         return new RoomInfoMessage()
@@ -88,36 +132,18 @@ public class ServerDataHolder : MonoBehaviour
         return result;
     }
 
+    public List<int> GetPlayerIDsRoom(RoomData data)
+    {
+        List<int> result = new List<int>();
 
-    //public  int[] FindIndex(this Array haystack, object needle)
-    //{
-    //    if (haystack.Rank == 1)
-    //        return new[] { Array.IndexOf(haystack, needle) };
-
-    //    var found = haystack.OfType<object>()
-    //                      .Select((v, i) => new { v, i })
-    //                      .FirstOrDefault(s => s.v.Equals(needle));
-    //    if (found == null)
-    //        throw new Exception("needle not found in set");
-
-    //    var indexes = new int[haystack.Rank]; 
-    //    var last = found.i;
-    //    var lastLength = Enumerable.Range(0, haystack.Rank)
-    //                               .Aggregate(1,
-    //                                   (a, v) => a * haystack.GetLength(v));
-    //    for (var rank = 0; rank < haystack.Rank; rank++)
-    //    {
-    //        lastLength = lastLength / haystack.GetLength(rank);
-    //        var value = last / lastLength;
-    //        last -= value * lastLength;
-
-    //        var index = value + haystack.GetLowerBound(rank);
-    //        if (index > haystack.GetUpperBound(rank))
-    //            throw new IndexOutOfRangeException();
-    //        indexes[rank] = index;
-    //    }
-
-    //    return indexes;
-    //}
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].roomID == Tools.FindIndex(rooms, data))
+            {
+                result.Add(players[i].playerIndex);
+            }
+        }
+        return result;
+    }
 
 }

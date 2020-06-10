@@ -57,6 +57,63 @@ public class ServerBehaviour : MonoBehaviour
         Debug.Log($"Got a name: {(message as SetNameMessage).Name}");
     }
 
+    private bool HandleMoveRequest(MoverequestMessage message, int connectID)
+    {
+        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
+        RoomData previousRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
+
+        int[] nextRoom = serverDataHolder.GetNextRoomID(previousRoom, message.Direction);
+
+        //check if player can move to that direction
+        if (nextRoom == null)
+        {
+            //handle requestdenied message
+            Debug.Log("Request denied"); 
+            return false;
+        }
+
+        //if so update dataholder of server
+        serverDataHolder.players.Find(x => x.playerIndex == connectID).roomID = nextRoom;
+
+        //send room info to cplayer
+        RoomInfoMessage newRoomMessage = serverDataHolder.GetRoomMessage(connectID);
+        SendMessage(newRoomMessage, connections[connectID]);
+
+        //send leavmessage to players who are in the previous room
+        List<int> idsInPreviousRoom = serverDataHolder.GetPlayerIDsRoom(previousRoom);
+        foreach(int id in idsInPreviousRoom) 
+        {
+            PlayerLeftRoom(connectID, id);
+        }
+
+        //send enter message to player who are in the next room.
+        List<int> idsInNewRoom = serverDataHolder.GetPlayerIDsRoom(serverDataHolder.rooms[nextRoom[0], nextRoom[1]]);
+        foreach (int id in idsInNewRoom)
+        {
+            PlayerJoinedRoom(connectID, id);
+        }
+        return true;
+    }
+
+
+    public void PlayerLeftRoom(int leftId, int recieverID)
+    {
+        PlayerLeaveRoomMessage message = new PlayerLeaveRoomMessage()
+        {
+            PlayerID = leftId
+        };
+        SendMessage(message, connections[recieverID]);
+    }
+
+    public void PlayerJoinedRoom(int joinID, int recieverID)
+    {
+        PlayerEnterRoomMessage message = new PlayerEnterRoomMessage()
+        {
+            PlayerID = joinID
+        };
+        SendMessage(message, connections[recieverID]);
+    }
+
     private uint colorTouint(Color32 colour)
     {
         return ((uint)colour.r << 24) | ((uint)colour.g << 16) | ((uint)colour.b << 8) | colour.a;
@@ -141,9 +198,15 @@ public class ServerBehaviour : MonoBehaviour
                             break;
                         case MessageHeader.MessageType.playerLeft:
                             break;
-                        case MessageHeader.MessageType.startGame:
-                            break;
-                        case MessageHeader.MessageType.count:
+                        case MessageHeader.MessageType.moveRequest:
+                            var moveRequest = new MoverequestMessage();
+                            moveRequest.DeserializeObject(ref reader);
+                            messagesQueue.Enqueue(moveRequest);
+                            bool canmove = HandleMoveRequest(moveRequest, i);
+                            if (canmove)
+                            {
+                                NextPlayerTurn();
+                            }
                             break;
                         default:
                             break;
@@ -168,6 +231,17 @@ public class ServerBehaviour : MonoBehaviour
         ProcessMessagesQueue();
     }
 
+    public void NextPlayerTurn()
+    {
+        serverDataHolder.turnID = (serverDataHolder.turnID + 1) % connections.Length;
+
+        PlayerTurnMessage turnMessage = new PlayerTurnMessage
+        {
+            PlayerID = serverDataHolder.turnID
+        };
+        SendMessageToAll(turnMessage);
+    }
+
     public void StartGame()
     {
         networkJobHandle.Complete();
@@ -186,7 +260,15 @@ public class ServerBehaviour : MonoBehaviour
             RoomInfoMessage startRoomMessage = serverDataHolder.GetRoomMessage(i);
             SendMessage(startRoomMessage, connections[i]);
         }
-    } 
+
+        //turn event is called
+        PlayerTurnMessage turnMessage = new PlayerTurnMessage
+        {
+            PlayerID = serverDataHolder.turnID
+        };
+        SendMessageToAll(turnMessage);
+
+    }
 
     public void NewPlayerJoined(NetworkConnection newPlayerConnection)
     {
@@ -278,6 +360,7 @@ public class ServerBehaviour : MonoBehaviour
         networkDriver.EndSend(writer);
 
     }
+
     public void SendMessageToAll(MessageHeader message)
     {
         for(int i = 0; i < connections.Length; i++)

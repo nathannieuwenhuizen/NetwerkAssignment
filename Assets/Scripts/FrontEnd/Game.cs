@@ -6,14 +6,9 @@ using UnityEngine;
 public class Game : MonoBehaviour
 {
     public Room cRoom;
+    public DataHolder dataHolder;
+
     public int currentTurnID;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
 
     public void SetupGame()
     {
@@ -26,17 +21,35 @@ public class Game : MonoBehaviour
         cRoom.UpdateInfo(message);
     }
 
+    public void GoToWest()
+    {
+        dataHolder.client.SendMoveRequest(DirectionEnum.West);
+    }
 
+    public void GoToNorth()
+    {
+        dataHolder.client.SendMoveRequest(DirectionEnum.North);
+    }
 
-    public void PlayerTurn(int turnID, int myID)
+    public void GoToSouth()
+    {
+        dataHolder.client.SendMoveRequest(DirectionEnum.South);
+    }
+
+    public void GoToEast()
+    {
+        dataHolder.client.SendMoveRequest(DirectionEnum.East);
+    }
+
+    public void PlayerTurn(int turnID)
     {
         currentTurnID = turnID;
-        if (currentTurnID == myID)
+        if (currentTurnID == dataHolder.myData.playerIndex)
         {
-
+            cRoom.UpdateUI(true, currentTurnID);
         } else
         {
-
+            cRoom.UpdateUI(false, currentTurnID);
         }
     }
 

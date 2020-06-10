@@ -19,6 +19,7 @@ public class ClientBehaviour : MonoBehaviour
     void Start()
     {
         dataHolder = GetComponent<DataHolder>();
+        dataHolder.client = this;
 
         networkDriver = NetworkDriver.Create();
         connection = default;
@@ -70,6 +71,15 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.roomInfo:
                         GetRoomInfo(ref reader);
                         break;
+                    case MessageHeader.MessageType.playerEnterRoom:
+                        PlayerEnterRoom(ref reader);
+                        break;
+                    case MessageHeader.MessageType.playerLeaveRoom:
+                        PlayerLeaveRoom(ref reader);
+                        break;
+                    case MessageHeader.MessageType.playerTurn:
+                        PlayerTurn(ref reader);
+                        break;
                     default:
                         break;
                 }
@@ -84,7 +94,28 @@ public class ClientBehaviour : MonoBehaviour
 
         networkJobHandle = networkDriver.ScheduleUpdate();
     }
-     
+
+    private void PlayerEnterRoom(ref DataStreamReader reader)
+    {
+        var message = new PlayerEnterRoomMessage();
+        message.DeserializeObject(ref reader);
+        dataHolder.game.cRoom.PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == message.ID));
+
+    }
+    private void PlayerLeaveRoom(ref DataStreamReader reader)
+    {
+        var message = new PlayerLeaveRoomMessage();
+        message.DeserializeObject(ref reader);
+        dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.ID));
+    }
+
+    private void PlayerTurn(ref DataStreamReader reader)
+    {
+        var message = new PlayerTurnMessage();
+        message.DeserializeObject(ref reader);
+        dataHolder.game.PlayerTurn(message.PlayerID);
+    }
+
     private void WelcomeFromServer(ref DataStreamReader reader)
     {
         var welcomeMessage = new WelcomeMessage();
@@ -112,6 +143,13 @@ public class ClientBehaviour : MonoBehaviour
         dataHolder.StartGame();
     }
 
+
+    public void SendMoveRequest(DirectionEnum Enum)
+    {
+        var moveRequest = new MoverequestMessage();
+        moveRequest.Direction = (byte)Enum;
+        SendMessage(moveRequest);
+    }
 
 
     private void PlayerLeft(ref DataStreamReader reader)

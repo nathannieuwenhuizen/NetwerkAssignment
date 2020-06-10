@@ -21,6 +21,6 @@ public static class ColorExtensions
 
         return color32;
     }
-    public static int RandomStartIndex = Random.Range(0, colors.Length);
+    public static int RandomStartIndex = 2;
     public static Color[] colors = { Color.yellow, Color.red, Color.blue, Color.green, Color.magenta, Color.white, Color.grey };
 }
