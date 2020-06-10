@@ -99,14 +99,18 @@ public class ClientBehaviour : MonoBehaviour
     {
         var message = new PlayerEnterRoomMessage();
         message.DeserializeObject(ref reader);
-        dataHolder.game.cRoom.PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == message.ID));
+        dataHolder.game.cRoom.PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
+        dataHolder.game.cRoom.UpdatePlayerUI();
 
     }
     private void PlayerLeaveRoom(ref DataStreamReader reader)
     {
         var message = new PlayerLeaveRoomMessage();
         message.DeserializeObject(ref reader);
-        dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.ID));
+        Debug.Log("message id: " + message.PlayerID);
+        //Debug.Log("message id: " + );
+        dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
+        dataHolder.game.cRoom.UpdatePlayerUI();
     }
 
     private void PlayerTurn(ref DataStreamReader reader)
@@ -123,7 +127,7 @@ public class ClientBehaviour : MonoBehaviour
         dataHolder.myData.playerIndex = welcomeMessage.PlayerID;
         dataHolder.myData.color = UIntToColor(welcomeMessage.Colour);
 
-        Debug.Log("Got a welcome message");
+
     }
 
     private void GetRoomInfo(ref DataStreamReader reader)
@@ -211,7 +215,7 @@ public class ClientBehaviour : MonoBehaviour
 
     private void StayAlive()
     {
-        Debug.Log("Client StayAliveSend");
+        //Debug.Log("Client StayAliveSend");
         var noneMessage = new NoneMessage();
 
         SendMessage(noneMessage);

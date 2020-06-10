@@ -54,21 +54,21 @@ public class ServerBehaviour : MonoBehaviour
 
     private void HandleSetName(MessageHeader message)
     {
-        Debug.Log($"Got a name: {(message as SetNameMessage).Name}");
+        //Debug.Log($"Got a name: {(message as SetNameMessage).Name}");
     }
 
     private bool HandleMoveRequest(MoverequestMessage message, int connectID)
     {
         PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
-        RoomData previousRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
+        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
 
-        int[] nextRoom = serverDataHolder.GetNextRoomID(previousRoom, message.Direction);
+        int[] nextRoom = serverDataHolder.GetNextRoomID(currentRoom, message.Direction);
 
         //check if player can move to that direction
         if (nextRoom == null)
         {
             //handle requestdenied message
-            Debug.Log("Request denied"); 
+            Debug.LogWarning("Request denied"); 
             return false;
         }
 
@@ -80,17 +80,25 @@ public class ServerBehaviour : MonoBehaviour
         SendMessage(newRoomMessage, connections[connectID]);
 
         //send leavmessage to players who are in the previous room
-        List<int> idsInPreviousRoom = serverDataHolder.GetPlayerIDsRoom(previousRoom);
+        List<int> idsInPreviousRoom = serverDataHolder.GetPlayerIDsRoom(currentRoom);
         foreach(int id in idsInPreviousRoom) 
         {
-            PlayerLeftRoom(connectID, id);
+            if (id != connectID)
+            {
+                //Debug.Log("player # " + connectID + " leaves room where player # " + id + " resides ");
+                PlayerLeftRoom(connectID, id);
+            }
         }
 
         //send enter message to player who are in the next room.
         List<int> idsInNewRoom = serverDataHolder.GetPlayerIDsRoom(serverDataHolder.rooms[nextRoom[0], nextRoom[1]]);
         foreach (int id in idsInNewRoom)
         {
-            PlayerJoinedRoom(connectID, id);
+            if (id != connectID)
+            {
+                //Debug.Log("player # " + connectID + " enter room where player # " + id + " resides ");
+                PlayerJoinedRoom(connectID, id);
+            }
         }
         return true;
     }
@@ -135,7 +143,7 @@ public class ServerBehaviour : MonoBehaviour
         while ((newConnection = networkDriver.Accept()) != default)
         {
             connections.Add(newConnection);
-            Debug.Log("Accepted new connection");
+            //Debug.Log("Accepted new connection");
 
 
             //new player data is set
@@ -146,7 +154,6 @@ public class ServerBehaviour : MonoBehaviour
             var playerID = newConnection.InternalId;
             var welcomeMessage = new WelcomeMessage
             {
-
                 PlayerID = playerID,
                 Colour = ((uint)colour.r << 24) | ((uint)colour.g << 16) | ((uint)colour.b << 8) | colour.a
             };
@@ -159,7 +166,7 @@ public class ServerBehaviour : MonoBehaviour
             if (serverDataHolder.players == null) { serverDataHolder.players = new List<PlayerData>(); }
             serverDataHolder.players.Add(newData);
 
-            Debug.Log("server data holder players count: " + serverDataHolder.players.Count);
+            //Debug.Log("server data holder players count: " + serverDataHolder.players.Count);
 
         }
 
@@ -201,7 +208,7 @@ public class ServerBehaviour : MonoBehaviour
                         case MessageHeader.MessageType.moveRequest:
                             var moveRequest = new MoverequestMessage();
                             moveRequest.DeserializeObject(ref reader);
-                            messagesQueue.Enqueue(moveRequest);
+                            //messagesQueue.Enqueue(moveRequest);
                             bool canmove = HandleMoveRequest(moveRequest, i);
                             if (canmove)
                             {
@@ -285,13 +292,13 @@ public class ServerBehaviour : MonoBehaviour
         SendMessageToAll(newPlayermessage);
 
 
-        //send the other player date to the new connection 
+        //send all the other player data to the new player 
         foreach (NetworkConnection conn in connections)
         {
             if (conn == newPlayerConnection) return;
 
             PlayerData otherPlayerData = GetPlayerData(conn);
-            if (otherPlayerData.name == "") return;
+            //if (otherPlayerData.name == "") return; //this caused bug that it doesnt add the other players who joined but didnt added a name
 
             NewPlayerMessage otherPlayerMessage = new NewPlayerMessage
             {
@@ -333,7 +340,7 @@ public class ServerBehaviour : MonoBehaviour
 
     private void StayAlive(int i)
     {
-        Debug.Log("Server StayAliveSend");
+        //Debug.Log("Server StayAliveSend");
         var noneMessage = new NoneMessage();
 
         SendMessage(noneMessage, connections[i]);

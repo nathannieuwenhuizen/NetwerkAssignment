@@ -32,8 +32,8 @@ public class ServerDataHolder : MonoBehaviour
                     directions = new Directions //set boundaries to rooms
                     {
                         North = y > 0,
-                        East = x < roomSize,
-                        South = y < roomSize,
+                        East = x < roomSize - 1,
+                        South = y < roomSize - 1,
                         West = x > 0
                     }
                 };
@@ -43,37 +43,37 @@ public class ServerDataHolder : MonoBehaviour
     }
 
     //gets the room that is connected to the previous room if its not out of boundaries and has a door connected to it.
-    public int[] GetNextRoomID(RoomData previousRoom, byte dirByte)
+    public int[] GetNextRoomID(RoomData currentRoom, byte dirByte)
     {
         int[] result = null;
-        int[] index = Tools.FindIndex(rooms, result); //needs testing!
-        int xPos = index[0];
-        int yPos = index[0];
-        Debug.Log("currentRoom index: "+ index.Length);
+        int[] currentIndex = Tools.FindIndex(rooms, currentRoom); //needs testing!
+        int xPos = currentIndex[0];
+        int yPos = currentIndex[1];
+        //Debug.Log("currentRoom index: "+ currentIndex[0] + " | " + currentIndex[1]);
         DirectionEnum directionEnum = (DirectionEnum)dirByte;
-        Debug.Log("direction enum: " + directionEnum);
+        //Debug.Log("direction enum: " + directionEnum);
         switch (directionEnum)
         {
             case DirectionEnum.North:
-                if (previousRoom.directions.North && yPos >  0)
+                if (currentRoom.directions.North && yPos >  0)
                 {
                     result = new int[]{ xPos, yPos - 1};
                 }
                 break;
-            case DirectionEnum.East:
-                if (previousRoom.directions.East && xPos < roomSize - 1)
+            case DirectionEnum.East: 
+                if (currentRoom.directions.East && xPos < roomSize - 1)
                 {
                     result = new int[] { xPos + 1, yPos };
                 }
                 break;
             case DirectionEnum.South:
-                if (previousRoom.directions.South && yPos < roomSize - 1)
-                {
+                if (currentRoom.directions.South && yPos < roomSize - 1)
+                { 
                     result = new int[] { xPos, yPos + 1 };
                 }
                 break;
             case DirectionEnum.West:
-                if (previousRoom.directions.East && xPos > 0)
+                if (currentRoom.directions.West && xPos > 0)
                 {
                     result = new int[] { xPos - 1, yPos };
                 }
@@ -81,6 +81,11 @@ public class ServerDataHolder : MonoBehaviour
             default:
                 break;
         }
+        if (result != null)
+        {
+            //Debug.Log("newRoom index: " + result[0] + " | " + result[1]);
+        }
+
         return result;
     }
 
@@ -103,9 +108,12 @@ public class ServerDataHolder : MonoBehaviour
 
         //get room data
         int[] roomIndex = data.roomID;
+        Debug.Log("room index: [" + roomIndex[0] + " , " + roomIndex[1] + " ]");
         RoomData room = rooms[roomIndex[0], roomIndex[1]];
 
         List<int> otherPlayerIDs = GetOtherPlayerIDsInSameRoom(data);
+        Debug.Log("amount of other players ids in that room" + otherPlayerIDs.Count);
+
         return new RoomInfoMessage()
         {
             MoveDirections = room.GetDirsByte(),
@@ -124,7 +132,7 @@ public class ServerDataHolder : MonoBehaviour
 
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].roomID == data.roomID && players[i] != data)
+            if (players[i].roomID[0] == data.roomID[0] && players[i].roomID[1] == data.roomID[1] && players[i].playerIndex != data.playerIndex)
             {
                 result.Add(players[i].playerIndex);
             }
@@ -135,12 +143,13 @@ public class ServerDataHolder : MonoBehaviour
     public List<int> GetPlayerIDsRoom(RoomData data)
     {
         List<int> result = new List<int>();
-
+        //Debug.Log("room id" + Tools.FindIndex(rooms, data));
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].roomID == Tools.FindIndex(rooms, data))
+            if (players[i].roomID[0] == Tools.FindIndex(rooms, data)[0] && players[i].roomID[1] == Tools.FindIndex(rooms, data)[1])
             {
                 result.Add(players[i].playerIndex);
+                //Debug.Log("players in current room" + players[i].playerIndex);
             }
         }
         return result;

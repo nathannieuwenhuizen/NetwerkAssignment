@@ -69,13 +69,13 @@ public class Room : MonoBehaviour
         //update the player count
         if (otherPlayersInRoom == null) { otherPlayersInRoom = new List<PlayerData>(); }
         otherPlayersInRoom.Clear();
-        UpdatePlayerUI();
 
-        Debug.Log("otherd ids count" + roomData.otherPlayersIDs.Count);
+        //Debug.Log("otherd ids count" + roomData.otherPlayersIDs.Count);
         foreach (int id in roomData.otherPlayersIDs)
         {
             PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == id));
-        } 
+        }
+        UpdatePlayerUI();
     }
 
     public void UpdateUI(bool myTurn, int playerID)
@@ -89,38 +89,41 @@ public class Room : MonoBehaviour
 
         turnText.text = myTurn ? "Your turn!" : "Player #" + playerID + "'s turn...";
     }
-
+    private void Update()
+    {
+        //Debug.Log("other player count: " + otherPlayersInRoom.Count);
+    }
     public void PlayerJoinedRoom(PlayerData data)
     {
-        if (otherPlayersInRoom.Contains(data)) { return; }
+        //Debug.Log("player enter room" + data);
+
         otherPlayersInRoom.Add(data);
 
-        UpdatePlayerUI();
     }
     public void PlayerLeftRoom(PlayerData data)
     {
-        if (!otherPlayersInRoom.Contains(data)) { return; }
-        otherPlayersInRoom.Remove(data);
+        //Debug.Log("player left room" + data);
 
-        UpdatePlayerUI();
+        otherPlayersInRoom.Remove(data);
     }
 
-    private void UpdatePlayerUI()
+    public void UpdatePlayerUI()
     {
         myPlayerObj.SetActive(true);
         myPlayerObj.GetComponent<SpriteRenderer>().color = dataHolder.myData.color;
 
-        //Debug.Log(otherPlayersInRoom.Count);
-        for(int i = 0; i < otherPlayerObjects.Length; i++)
+        for (int i = 0; i < otherPlayerObjects.Length; i++)
         {
-            if (i < otherPlayersInRoom.Count) // needs testing
+            otherPlayerObjects[i].SetActive(false);
+        }
+        for (int i = 0; i < otherPlayersInRoom.Count; i++)
+        {
+            if (otherPlayersInRoom[i] != null)
             {
+                //Debug.Log("player object: " + otherPlayerObjects[i]);
+                //Debug.Log("player in room: " + otherPlayersInRoom[i]);
                 otherPlayerObjects[i].SetActive(true);
                 otherPlayerObjects[i].GetComponent<SpriteRenderer>().color = otherPlayersInRoom[i].color;
-            } 
-            else
-            {
-                otherPlayerObjects[i].SetActive(false);
             }
         }
     }
