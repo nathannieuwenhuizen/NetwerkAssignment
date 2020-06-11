@@ -57,53 +57,6 @@ public class ServerBehaviour : MonoBehaviour
         //Debug.Log($"Got a name: {(message as SetNameMessage).Name}");
     }
 
-    private bool HandleMoveRequest(MoverequestMessage message, int connectID)
-    {
-        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
-        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
-
-        int[] nextRoom = serverDataHolder.GetNextRoomID(currentRoom, message.Direction);
-
-        //check if player can move to that direction
-        if (nextRoom == null)
-        {
-            //handle requestdenied message
-            Debug.LogWarning("Request denied"); 
-            return false;
-        }
-
-        //if so update dataholder of server
-        serverDataHolder.players.Find(x => x.playerIndex == connectID).roomID = nextRoom;
-
-        //send room info to cplayer
-        RoomInfoMessage newRoomMessage = serverDataHolder.GetRoomMessage(connectID);
-        SendMessage(newRoomMessage, connections[connectID]);
-
-        //send leavmessage to players who are in the previous room
-        List<int> idsInPreviousRoom = serverDataHolder.GetPlayerIDsRoom(currentRoom);
-        foreach(int id in idsInPreviousRoom) 
-        {
-            if (id != connectID)
-            {
-                //Debug.Log("player # " + connectID + " leaves room where player # " + id + " resides ");
-                PlayerLeftRoom(connectID, id);
-            }
-        }
-
-        //send enter message to player who are in the next room.
-        List<int> idsInNewRoom = serverDataHolder.GetPlayerIDsRoom(serverDataHolder.rooms[nextRoom[0], nextRoom[1]]);
-        foreach (int id in idsInNewRoom)
-        {
-            if (id != connectID)
-            {
-                //Debug.Log("player # " + connectID + " enter room where player # " + id + " resides ");
-                PlayerJoinedRoom(connectID, id);
-            }
-        }
-        return true;
-    }
-
-
     public void PlayerLeftRoom(int leftId, int recieverID)
     {
         PlayerLeaveRoomMessage message = new PlayerLeaveRoomMessage()
@@ -215,6 +168,13 @@ public class ServerBehaviour : MonoBehaviour
                                 NextPlayerTurn();
                             }
                             break;
+                        case MessageHeader.MessageType.claimTreasureRequest:
+
+                            var treasureRquest = new ClaimTreasureRequestMessage();
+                            treasureRquest.DeserializeObject(ref reader);
+                            HandleTreasureClaim(treasureRquest, i);
+                            break;
+
                         default:
                             break;
                     }
@@ -238,13 +198,94 @@ public class ServerBehaviour : MonoBehaviour
         ProcessMessagesQueue();
     }
 
+    public void HandleTreasureClaim(ClaimTreasureRequestMessage message, int connectID)
+    {
+        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
+        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
+
+        //check treasure even has ammount
+        if (currentRoom.treasureAmmount <= 0)
+        {
+            //if not then send request denied
+            RequestDeniedMessage deniedMessage = new RequestDeniedMessage()
+            {
+                DeniedMessageID = message.ID
+            };
+            SendMessage(deniedMessage, connections[connectID]);
+            return;
+        }
+
+        //then update treasure amount in room and transfer to player data
+        int gainedTreasure = currentRoom.treasureAmmount;
+        currentRoom.treasureAmmount = 0;
+        playerData.score += gainedTreasure;
+
+        //send obtain message back to player
+        ObtainTreasureMessage obtainMessage = new ObtainTreasureMessage()
+        {
+            Amount = (ushort)gainedTreasure
+        };
+        SendMessage(obtainMessage, connections[connectID]);
+
+
+        //next turn
+        NextPlayerTurn();
+    }
+
+    private bool HandleMoveRequest(MoverequestMessage message, int connectID)
+    {
+        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
+        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
+
+        int[] nextRoom = serverDataHolder.GetNextRoomID(currentRoom, message.Direction);
+
+        //check if player can move to that direction
+        if (nextRoom == null)
+        {
+            //handle requestdenied message
+            Debug.LogWarning("Request denied");
+            return false;
+        }
+
+        //if so update dataholder of server
+        serverDataHolder.players.Find(x => x.playerIndex == connectID).roomID = nextRoom;
+
+        //send room info to cplayer
+        RoomInfoMessage newRoomMessage = serverDataHolder.GetRoomMessage(connectID);
+        SendMessage(newRoomMessage, connections[connectID]);
+
+        //send leavmessage to players who are in the previous room
+        List<int> idsInPreviousRoom = serverDataHolder.GetPlayerIDsRoom(currentRoom);
+        foreach (int id in idsInPreviousRoom)
+        {
+            if (id != connectID)
+            {
+                //Debug.Log("player # " + connectID + " leaves room where player # " + id + " resides ");
+                PlayerLeftRoom(connectID, id);
+            }
+        }
+
+        //send enter message to player who are in the next room.
+        List<int> idsInNewRoom = serverDataHolder.GetPlayerIDsRoom(serverDataHolder.rooms[nextRoom[0], nextRoom[1]]);
+        foreach (int id in idsInNewRoom)
+        {
+            if (id != connectID)
+            {
+                //Debug.Log("player # " + connectID + " enter room where player # " + id + " resides ");
+                PlayerJoinedRoom(connectID, id);
+            }
+        }
+        return true;
+    }
+
+
     public void NextPlayerTurn()
     {
         serverDataHolder.turnID = (serverDataHolder.turnID + 1) % connections.Length;
 
         PlayerTurnMessage turnMessage = new PlayerTurnMessage
         {
-            PlayerID = serverDataHolder.turnID
+            PlayerID = serverDataHolder.turnID 
         };
         SendMessageToAll(turnMessage);
     }

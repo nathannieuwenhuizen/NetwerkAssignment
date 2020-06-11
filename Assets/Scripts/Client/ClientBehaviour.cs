@@ -80,6 +80,9 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.playerTurn:
                         PlayerTurn(ref reader);
                         break;
+                    case MessageHeader.MessageType.obtainTreasure:
+                        ObtainTreasure(ref reader);
+                        break;
                     default:
                         break;
                 }
@@ -100,7 +103,7 @@ public class ClientBehaviour : MonoBehaviour
         var message = new PlayerEnterRoomMessage();
         message.DeserializeObject(ref reader);
         dataHolder.game.cRoom.PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
-        dataHolder.game.cRoom.UpdatePlayerUI();
+        dataHolder.game.cRoom.UpdatePlayerUIElements();
 
     }
     private void PlayerLeaveRoom(ref DataStreamReader reader)
@@ -110,7 +113,7 @@ public class ClientBehaviour : MonoBehaviour
         Debug.Log("message id: " + message.PlayerID);
         //Debug.Log("message id: " + );
         dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
-        dataHolder.game.cRoom.UpdatePlayerUI();
+        dataHolder.game.cRoom.UpdatePlayerUIElements();
     }
 
     private void PlayerTurn(ref DataStreamReader reader)
@@ -184,6 +187,20 @@ public class ClientBehaviour : MonoBehaviour
         dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
 
     }
+
+    private void ObtainTreasure(ref DataStreamReader reader)
+    {
+        var message = new ObtainTreasureMessage();
+        message.DeserializeObject(ref reader);
+
+        dataHolder.myData.score += message.Amount;
+
+        dataHolder.game.cRoom.treasure.obj.SetActive(false);
+        dataHolder.game.cRoom.treasure.SetButtons(false);
+        //todo: update score ui?
+    }
+
+
 
     private void CheckAliveSend()
     {

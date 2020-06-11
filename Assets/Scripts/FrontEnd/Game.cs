@@ -41,6 +41,12 @@ public class Game : MonoBehaviour
         dataHolder.client.SendMoveRequest(DirectionEnum.East);
     }
 
+    public void ClaimTreasure()
+    {
+        ClaimTreasureRequestMessage message = new ClaimTreasureRequestMessage();
+        dataHolder.client.SendMessage(message);
+    }
+
     public void PlayerTurn(int turnID)
     {
         currentTurnID = turnID;

@@ -18,7 +18,7 @@ public class Room : MonoBehaviour
     [SerializeField]
     private GameObject exit;
     [SerializeField]
-    private GameObject treasure;
+    public ButtonObject treasure;
     [SerializeField]
     private ButtonObject[] doors;
     [SerializeField]
@@ -30,6 +30,10 @@ public class Room : MonoBehaviour
     private GameObject buttonParent;
     [SerializeField]
     private Text turnText;
+    [SerializeField]
+    private Text hp;
+    [SerializeField]
+    private Text score;
 
     private List<PlayerData> otherPlayersInRoom;
     public DataHolder dataHolder;
@@ -63,7 +67,7 @@ public class Room : MonoBehaviour
         monster.SetActive(roomData.containsMonster);
         exit.SetActive(roomData.containsExit);
 
-        treasure.SetActive(roomData.treasureAmmount > 0);
+        treasure.obj.SetActive(roomData.treasureAmmount > 0);
 
 
         //update the player count
@@ -75,7 +79,7 @@ public class Room : MonoBehaviour
         {
             PlayerJoinedRoom(dataHolder.players.Find(x => x.playerIndex == id));
         }
-        UpdatePlayerUI();
+        UpdatePlayerUIElements();
     }
 
     public void UpdateUI(bool myTurn, int playerID)
@@ -86,10 +90,16 @@ public class Room : MonoBehaviour
         {
             door.SetButtons(myTurn);
         }
-        string name = "";
+        treasure.SetButtons(myTurn);
 
+        hp.text = "HP: " + dataHolder.myData.hp;
+        score.text = "Score: " + dataHolder.myData.score;
+
+        string name = "";
         name = otherPlayersInRoom.Find(x => x.playerIndex == playerID)?.name;
         turnText.text = myTurn ? "Your turn!" : "#" + playerID + " " + name + "'s turn...";
+
+        
     }
     private void Update()
     {
@@ -109,11 +119,13 @@ public class Room : MonoBehaviour
         otherPlayersInRoom.Remove(data);
     }
 
-    public void UpdatePlayerUI()
+    public void UpdatePlayerUIElements()
     {
         myPlayerObj.SetActive(true);
         myPlayerObj.GetComponentInChildren<TextMesh>().text = dataHolder.myData.name; 
         myPlayerObj.GetComponent<SpriteRenderer>().color = dataHolder.myData.color;
+
+
 
         for (int i = 0; i < otherPlayerObjects.Length; i++)
         {

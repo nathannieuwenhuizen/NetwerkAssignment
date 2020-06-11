@@ -38,6 +38,7 @@ public class PlayerData
     public int playerIndex;
     public string name;
     public Color color;
-    public int hp;
+    public int hp = 0;
     public int[] roomID; // 2d array index [0,0]
+    public int score = 0;
 }

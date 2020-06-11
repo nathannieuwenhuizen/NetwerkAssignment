@@ -37,6 +37,10 @@ public class ServerDataHolder : MonoBehaviour
                         West = x > 0
                     }
                 };
+                if (x == 1 && y == 0)
+                {
+                    newRoom.treasureAmmount = 100;
+                }
                 rooms[x, y] = newRoom;
             }
         }
