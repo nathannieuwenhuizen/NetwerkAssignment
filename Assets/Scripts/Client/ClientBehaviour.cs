@@ -175,8 +175,14 @@ public class ClientBehaviour : MonoBehaviour
             color = UIntToColor(message.Colour),
             name = message.PlayerName
         };
+         
+        if (newData.playerIndex == dataHolder.myData.playerIndex)
+        {
+            dataHolder.myData.name = newData.name;
+        } 
         dataHolder.players.Add(newData);
         dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
+
     }
 
     private void CheckAliveSend()

@@ -24,6 +24,7 @@ public class DataHolder : MonoBehaviour
         //SceneManager.LoadScene("Game");
         lobby.gameObject.SetActive(false);
         game = Instantiate(Resources.Load<GameObject>("Game") as GameObject).GetComponent<Game>();
+        game.gameObject.name = "Game of player: " + myData.name;
         game.cRoom.dataHolder = this;
         game.dataHolder = this;
         game.SetupGame();

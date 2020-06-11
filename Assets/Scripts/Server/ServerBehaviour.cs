@@ -289,7 +289,7 @@ public class ServerBehaviour : MonoBehaviour
             Colour = colorTouint((Color32)newPlayerData.color),
             PlayerName = newPlayerData.name
         };
-        SendMessageToAll(newPlayermessage);
+        SendMessageToAll(newPlayermessage); 
 
 
         //send all the other player data to the new player 

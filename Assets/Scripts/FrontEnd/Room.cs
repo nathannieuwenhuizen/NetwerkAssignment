@@ -86,8 +86,10 @@ public class Room : MonoBehaviour
         {
             door.SetButtons(myTurn);
         }
+        string name = "";
 
-        turnText.text = myTurn ? "Your turn!" : "Player #" + playerID + "'s turn...";
+        name = otherPlayersInRoom.Find(x => x.playerIndex == playerID)?.name;
+        turnText.text = myTurn ? "Your turn!" : "#" + playerID + " " + name + "'s turn...";
     }
     private void Update()
     {
@@ -110,6 +112,7 @@ public class Room : MonoBehaviour
     public void UpdatePlayerUI()
     {
         myPlayerObj.SetActive(true);
+        myPlayerObj.GetComponentInChildren<TextMesh>().text = dataHolder.myData.name; 
         myPlayerObj.GetComponent<SpriteRenderer>().color = dataHolder.myData.color;
 
         for (int i = 0; i < otherPlayerObjects.Length; i++)
@@ -123,6 +126,7 @@ public class Room : MonoBehaviour
                 //Debug.Log("player object: " + otherPlayerObjects[i]);
                 //Debug.Log("player in room: " + otherPlayersInRoom[i]);
                 otherPlayerObjects[i].SetActive(true);
+                otherPlayerObjects[i].GetComponentInChildren<TextMesh>().text = otherPlayersInRoom[i].name;
                 otherPlayerObjects[i].GetComponent<SpriteRenderer>().color = otherPlayersInRoom[i].color;
             }
         }
