@@ -12,7 +12,7 @@ public class Game : MonoBehaviour
 
     public void SetupGame()
     {
-        Debug.Log("Game is setting up");
+        //Debug.Log("Game is setting up");
     }
 
 
@@ -35,10 +35,16 @@ public class Game : MonoBehaviour
     {
         dataHolder.client.SendMoveRequest(DirectionEnum.South);
     }
-
+     
     public void GoToEast()
     {
         dataHolder.client.SendMoveRequest(DirectionEnum.East);
+    }
+
+    public void TryTOExitDungeon()
+    {
+        LeavesDungeonRequestMessage message = new LeavesDungeonRequestMessage();
+        dataHolder.client.SendMessage(message);
     }
 
     public void ClaimTreasure()

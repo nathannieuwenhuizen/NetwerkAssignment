@@ -41,4 +41,5 @@ public class PlayerData
     public int hp = 0;
     public int[] roomID; // 2d array index [0,0]
     public int score = 0;
+    public bool activeInDungeon = true;
 }

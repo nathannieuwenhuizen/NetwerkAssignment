@@ -8,7 +8,8 @@ using UnityEngine.SceneManagement;
 public class ServerDataHolder : MonoBehaviour
 {
 
-    public List<PlayerData> players; 
+    public List<PlayerData> players;
+    public List<int> activePlayerIDs;
     public RoomData[,] rooms;
     public int[] startIndex;
     public int roomSize = 3;
@@ -38,6 +39,10 @@ public class ServerDataHolder : MonoBehaviour
                     }
                 };
                 if (x == 1 && y == 0)
+                {
+                    newRoom.containsExit = true;
+                }
+                if (x == 2 && y == 0)
                 {
                     newRoom.treasureAmmount = 100;
                 }
@@ -99,11 +104,15 @@ public class ServerDataHolder : MonoBehaviour
         CreateRoomData();
 
         startIndex = new int[] { 0, 0 };
-        //set all players data room to start room.
+        activePlayerIDs = new List<int>();
+        //set all players data room to start room. and add their ids to the active dungeon ids list
         foreach(PlayerData player in players)
         {
             player.roomID = startIndex;
+            activePlayerIDs.Add(player.playerIndex);
         }
+
+
     } 
 
     public RoomInfoMessage GetRoomMessage(int playerID)
@@ -136,7 +145,7 @@ public class ServerDataHolder : MonoBehaviour
 
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].roomID[0] == data.roomID[0] && players[i].roomID[1] == data.roomID[1] && players[i].playerIndex != data.playerIndex)
+            if (players[i].roomID[0] == data.roomID[0] && players[i].roomID[1] == data.roomID[1] && players[i].playerIndex != data.playerIndex && players[i].activeInDungeon)
             {
                 result.Add(players[i].playerIndex);
             }

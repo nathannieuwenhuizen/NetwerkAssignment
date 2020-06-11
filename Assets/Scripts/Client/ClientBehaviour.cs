@@ -63,7 +63,7 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.requestDenied:
                         break;
                     case MessageHeader.MessageType.playerLeft:
-                        PlayerLeft(ref reader);
+                        PlayerLeftLobby(ref reader);
                         break;
                     case MessageHeader.MessageType.startGame:
                         StartGame(ref reader);
@@ -82,6 +82,12 @@ public class ClientBehaviour : MonoBehaviour
                         break;
                     case MessageHeader.MessageType.obtainTreasure:
                         ObtainTreasure(ref reader);
+                        break;
+                    case MessageHeader.MessageType.playerLeftDungeon:
+                        PlayerLeftDungeon(ref reader);
+                        break;
+                    case MessageHeader.MessageType.endGame:
+                        EndGame(ref reader);
                         break;
                     default:
                         break;
@@ -137,7 +143,6 @@ public class ClientBehaviour : MonoBehaviour
     {
         var roomInfoMessage = new RoomInfoMessage();
         roomInfoMessage.DeserializeObject(ref reader);
-
         dataHolder.game.UpdateRoom(roomInfoMessage);
     }
 
@@ -159,7 +164,7 @@ public class ClientBehaviour : MonoBehaviour
     }
 
 
-    private void PlayerLeft(ref DataStreamReader reader)
+    private void PlayerLeftLobby(ref DataStreamReader reader)
     {
         var playerLeftMessage = new PlayerLeftMessage();
         playerLeftMessage.DeserializeObject(ref reader);
@@ -186,6 +191,44 @@ public class ClientBehaviour : MonoBehaviour
         dataHolder.players.Add(newData);
         dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
 
+    }
+
+    public void PlayerLeftDungeon(ref DataStreamReader reader)
+    {
+        var message = new PLayerLeftDungeonMessage();
+        message.DeserializeObject(ref reader);
+
+        //I left dungeon
+        if(message.PlayerID == dataHolder.myData.playerIndex)
+        {
+            dataHolder.game.cRoom.ILeftDungeon();
+        }
+        else
+        {
+            PlayerData leftPlayer = dataHolder.game.cRoom.otherPlayersInRoom.Find(x => x.playerIndex == message.PlayerID);
+
+            //Other player left dungeon
+            //PlayerData leftPlayer = dataHolder.players.Find(x => x.playerIndex == message.PlayerID);
+            if (leftPlayer != null)
+            {
+                Debug.Log("left player: " + leftPlayer);
+                dataHolder.game.cRoom.PlayerLeftRoom(leftPlayer);
+            }
+        }
+
+        //update ui
+        dataHolder.game.cRoom.UpdatePlayerUIElements();
+    }
+
+    public void EndGame(ref DataStreamReader reader)
+    {
+        var message = new EndGameMessage();
+        message.DeserializeObject(ref reader);
+
+        HighScorePair[] endScores = message.PlayerIDHighscorePairs;
+
+        Destroy(dataHolder.game.gameObject);
+        dataHolder.game = null;
     }
 
     private void ObtainTreasure(ref DataStreamReader reader)

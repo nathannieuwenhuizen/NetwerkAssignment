@@ -16,7 +16,7 @@ public class Room : MonoBehaviour
     [SerializeField]
     private GameObject monster;
     [SerializeField]
-    private GameObject exit;
+    private ButtonObject exit;
     [SerializeField]
     public ButtonObject treasure;
     [SerializeField]
@@ -35,7 +35,10 @@ public class Room : MonoBehaviour
     [SerializeField]
     private Text score;
 
-    private List<PlayerData> otherPlayersInRoom;
+
+    private bool IminDungeon = true;
+
+    public List<PlayerData> otherPlayersInRoom;
     public DataHolder dataHolder;
 
     void Start()
@@ -65,7 +68,7 @@ public class Room : MonoBehaviour
         doors[3].obj.SetActive(roomData.directions.West);
 
         monster.SetActive(roomData.containsMonster);
-        exit.SetActive(roomData.containsExit);
+        exit.obj.SetActive(roomData.containsExit);
 
         treasure.obj.SetActive(roomData.treasureAmmount > 0);
 
@@ -91,6 +94,7 @@ public class Room : MonoBehaviour
             door.SetButtons(myTurn);
         }
         treasure.SetButtons(myTurn);
+        exit.SetButtons(myTurn);
 
         hp.text = "HP: " + dataHolder.myData.hp;
         score.text = "Score: " + dataHolder.myData.score;
@@ -119,9 +123,14 @@ public class Room : MonoBehaviour
         otherPlayersInRoom.Remove(data);
     }
 
+    public void ILeftDungeon()
+    {
+        IminDungeon = false;
+    }
+
     public void UpdatePlayerUIElements()
     {
-        myPlayerObj.SetActive(true);
+        myPlayerObj.SetActive(IminDungeon);
         myPlayerObj.GetComponentInChildren<TextMesh>().text = dataHolder.myData.name; 
         myPlayerObj.GetComponent<SpriteRenderer>().color = dataHolder.myData.color;
 

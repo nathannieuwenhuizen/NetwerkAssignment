@@ -6,7 +6,6 @@ using UnityEngine;
 
 public static class Tools
 {
-
     public static int[] FindIndex( RoomData[,] array, RoomData obj)
     {
         //Debug.Log("Array length" + );

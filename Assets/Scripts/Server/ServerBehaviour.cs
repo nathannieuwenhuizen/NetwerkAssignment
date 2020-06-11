@@ -175,6 +175,12 @@ public class ServerBehaviour : MonoBehaviour
                             HandleTreasureClaim(treasureRquest, i);
                             break;
 
+                        case MessageHeader.MessageType.leaveDungeonRequest:
+                            var leaveDungeonRequest = new LeavesDungeonRequestMessage();
+                            leaveDungeonRequest.DeserializeObject(ref reader);
+                            HandleLeaveDungeonRequest(leaveDungeonRequest, i);
+                            break;
+
                         default:
                             break;
                     }
@@ -197,7 +203,42 @@ public class ServerBehaviour : MonoBehaviour
 
         ProcessMessagesQueue();
     }
+    public void HandleLeaveDungeonRequest(LeavesDungeonRequestMessage message, int connectID)
+    {
+        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
+        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
 
+        //check if player can leave dungeon
+        if (!currentRoom.containsExit)
+        {
+            RequestDenied(message, connectID);
+            return;
+        }
+
+        //edit the list
+        serverDataHolder.activePlayerIDs.Remove(connectID); //needs testing
+        playerData.activeInDungeon = false;
+
+        //send message to all players the player left dungeon
+        PLayerLeftDungeonMessage leftMessage = new PLayerLeftDungeonMessage()
+        {
+            PlayerID = connectID
+        };
+        SendMessageToAll(leftMessage);
+
+        //next turn
+        NextPlayerTurn();
+    }
+
+    //called when a request isnt possible
+    private void RequestDenied(MessageHeader message, int connectID)
+    {
+        RequestDeniedMessage deniedMessage = new RequestDeniedMessage()
+        {
+            DeniedMessageID = message.ID
+        };
+        SendMessage(deniedMessage, connections[connectID]);
+    }
     public void HandleTreasureClaim(ClaimTreasureRequestMessage message, int connectID)
     {
         PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
@@ -207,11 +248,7 @@ public class ServerBehaviour : MonoBehaviour
         if (currentRoom.treasureAmmount <= 0)
         {
             //if not then send request denied
-            RequestDeniedMessage deniedMessage = new RequestDeniedMessage()
-            {
-                DeniedMessageID = message.ID
-            };
-            SendMessage(deniedMessage, connections[connectID]);
+            RequestDenied(message, connectID);
             return;
         }
 
@@ -281,13 +318,38 @@ public class ServerBehaviour : MonoBehaviour
 
     public void NextPlayerTurn()
     {
-        serverDataHolder.turnID = (serverDataHolder.turnID + 1) % connections.Length;
 
+        //check if all player left dungeon
+
+        if (serverDataHolder.activePlayerIDs.Count == 0)
+        {
+            //endgame!
+            EndGame();
+            return;
+        }
+        serverDataHolder.turnID = serverDataHolder.activePlayerIDs[(serverDataHolder.turnID + 1) % serverDataHolder.activePlayerIDs.Count];
         PlayerTurnMessage turnMessage = new PlayerTurnMessage
         {
             PlayerID = serverDataHolder.turnID 
         };
         SendMessageToAll(turnMessage);
+    }
+
+    public void EndGame()
+    {
+        HighScorePair[] highScorePairs = new HighScorePair[serverDataHolder.players.Count];
+        for(int i = 0; i < highScorePairs.Length; i++)
+        {
+            highScorePairs[i].playerID = serverDataHolder.players[i].playerIndex;
+            highScorePairs[i].score = (ushort)serverDataHolder.players[i].score;
+        }
+        EndGameMessage message = new EndGameMessage()
+        {
+            NumberOfScores = (byte)highScorePairs.Length,
+            PlayerIDHighscorePairs = highScorePairs
+        };
+
+        SendMessageToAll(message);
     }
 
     public void StartGame()
