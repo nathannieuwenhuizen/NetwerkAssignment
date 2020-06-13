@@ -255,15 +255,20 @@ public class ServerBehaviour : MonoBehaviour
         //then update treasure amount in room and transfer to player data
         int gainedTreasure = currentRoom.treasureAmmount;
         currentRoom.treasureAmmount = 0;
-        playerData.score += gainedTreasure;
 
-        //send obtain message back to player
+        //send obtain message back to all players in room
+        List<int> ids = serverDataHolder.GetOtherPlayerIDsInSameRoom(playerData);
+        ids.Add(connectID);
+        Debug.Log("Other ids in room  count "+ ids.Count);
         ObtainTreasureMessage obtainMessage = new ObtainTreasureMessage()
         {
-            Amount = (ushort)gainedTreasure
+            Amount = (ushort)(gainedTreasure / ids.Count)
         };
-        SendMessage(obtainMessage, connections[connectID]);
-
+        foreach (int id in ids)
+        {
+            serverDataHolder.players.Find(x => x.playerIndex == id).score += gainedTreasure / ids.Count;
+            SendMessage(obtainMessage, connections[serverDataHolder.players.Find(x => x.playerIndex == id).playerIndex]);
+        }
 
         //next turn
         NextPlayerTurn();
