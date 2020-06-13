@@ -1,6 +1,6 @@
 ﻿using Unity.Networking.Transport;
 
-public class HitMonsterMessage : MessageHeader
+public class HitByMonsterMessage : MessageHeader
 {
     public override MessageType Type => MessageType.hitByMonster;
 

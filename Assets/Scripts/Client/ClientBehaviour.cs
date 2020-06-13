@@ -89,6 +89,18 @@ public class ClientBehaviour : MonoBehaviour
                     case MessageHeader.MessageType.endGame:
                         EndGame(ref reader);
                         break;
+                    case MessageHeader.MessageType.hitMonster:
+                        HitMonster(ref reader);
+                        break;
+                    case MessageHeader.MessageType.hitByMonster:
+                        HitByMonster(ref reader);
+                        break;
+                    case MessageHeader.MessageType.playerDies:
+                        PlayerDies(ref reader);
+                        break;
+                    case MessageHeader.MessageType.playerDefends:
+                        DefendsAgainstMonster(ref reader);
+                        break;
                     default:
                         break;
                 }
@@ -135,8 +147,6 @@ public class ClientBehaviour : MonoBehaviour
         welcomeMessage.DeserializeObject(ref reader);
         dataHolder.myData.playerIndex = welcomeMessage.PlayerID;
         dataHolder.myData.color = UIntToColor(welcomeMessage.Colour);
-
-
     }
 
     private void GetRoomInfo(ref DataStreamReader reader)
@@ -192,6 +202,56 @@ public class ClientBehaviour : MonoBehaviour
         dataHolder.lobby.UpdateLobby(dataHolder.players.ToArray());
 
     }
+
+
+    public void HitMonster(ref DataStreamReader reader) //probably nothing... well
+    {
+        var message = new HitMonsterMessage();
+        message.DeserializeObject(ref reader);
+        dataHolder.game.cRoom.roomData.monsterHP -= message.damageDealt;
+        Debug.Log("Hitting monster...");
+        if (dataHolder.game.cRoom.roomData.monsterHP <= 0)
+        {
+            dataHolder.game.cRoom.roomData.containsMonster = false;
+        }
+        dataHolder.game.cRoom.UpdateRoom();
+    }
+
+    public void HitByMonster(ref DataStreamReader reader)
+    {
+        var message = new HitByMonsterMessage();
+        message.DeserializeObject(ref reader);
+
+        if (message.PlayerID == dataHolder.myData.playerIndex)
+        {
+            dataHolder.myData.hp = message.newHP;
+            dataHolder.game.cRoom.UpdateHPText();
+        }
+    }
+
+    public void PlayerDies(ref DataStreamReader reader) // is ok, but needs die animation?
+    {
+        var message = new PlayerDiesMessage();
+        message.DeserializeObject(ref reader);
+
+        dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
+        dataHolder.game.cRoom.UpdatePlayerUIElements(); 
+    }
+
+
+    public void DefendsAgainstMonster(ref DataStreamReader reader)
+    {
+        var message = new PlayerDefendsMessage();
+        message.DeserializeObject(ref reader);
+        
+        if (message.PlayerID == dataHolder.myData.playerIndex)
+        {
+            dataHolder.myData.hp = message.newHP;
+            dataHolder.game.cRoom.UpdateHPText();
+        }
+    }
+
+
 
     public void PlayerLeftDungeon(ref DataStreamReader reader)
     {

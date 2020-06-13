@@ -53,6 +53,17 @@ public class Game : MonoBehaviour
         dataHolder.client.SendMessage(message);
     }
 
+    public void RequestAttackMonster()
+    {
+        AttackRequestMessage message = new AttackRequestMessage();
+        dataHolder.client.SendMessage(message);
+    }
+    public void RequestDefendAgainstMonster()
+    {
+        DefendRequestMessage message = new DefendRequestMessage();
+        dataHolder.client.SendMessage(message);
+    }
+
     public void PlayerTurn(int turnID)
     {
         currentTurnID = turnID;

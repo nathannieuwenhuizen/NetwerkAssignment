@@ -14,7 +14,7 @@ public class Room : MonoBehaviour
     [Space]
     [Header("Gameobject elements")]
     [SerializeField]
-    private GameObject monster;
+    private ButtonObject monster;
     [SerializeField]
     private ButtonObject exit;
     [SerializeField]
@@ -51,15 +51,19 @@ public class Room : MonoBehaviour
 
         roomData.treasureAmmount = message.TreasureRoom;
         roomData.containsMonster = message.ContainsMonster == 1;
+        if (roomData.containsMonster)
+        {
+            roomData.monsterHP = 10;
+        }
         roomData.containsExit = message.ContainsExit == 1;
         roomData.numberOfOtherPlayers = message.NumberOfOtherPlayers;
         roomData.otherPlayersIDs = message.OtherPlayerIDs;
         roomData.directions = roomData.ReadDirectionByte(message.MoveDirections);
         UpdateRoom(); 
 
-    }
+    } 
 
-    private void UpdateRoom()
+    public void UpdateRoom()
     {
         //update room
         doors[0].obj.SetActive(roomData.directions.North);
@@ -67,7 +71,7 @@ public class Room : MonoBehaviour
         doors[2].obj.SetActive(roomData.directions.South);
         doors[3].obj.SetActive(roomData.directions.West);
 
-        monster.SetActive(roomData.containsMonster);
+        monster.obj.SetActive(roomData.containsMonster);
         exit.obj.SetActive(roomData.containsExit);
 
         treasure.obj.SetActive(roomData.treasureAmmount > 0);
@@ -85,6 +89,11 @@ public class Room : MonoBehaviour
         UpdatePlayerUIElements();
     }
 
+    public void UpdateHPText()
+    {
+        hp.text = "HP: " + dataHolder.myData.hp;
+    }
+
     public void UpdateUI(bool myTurn, int playerID)
     {
         buttonParent.SetActive(myTurn);
@@ -95,6 +104,7 @@ public class Room : MonoBehaviour
         }
         treasure.SetButtons(myTurn);
         exit.SetButtons(myTurn);
+        monster.SetButtons(myTurn);
 
         hp.text = "HP: " + dataHolder.myData.hp;
         score.text = "Score: " + dataHolder.myData.score;

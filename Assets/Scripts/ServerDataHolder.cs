@@ -10,6 +10,8 @@ public class ServerDataHolder : MonoBehaviour
 
     public List<PlayerData> players;
     public List<int> activePlayerIDs;
+    public List<int[]> activeMonsters;
+
     public RoomData[,] rooms;
     public int[] startIndex;
     public int roomSize = 3;
@@ -40,7 +42,7 @@ public class ServerDataHolder : MonoBehaviour
                 };
                 if (x == 1 && y == 0)
                 {
-                    newRoom.containsExit = true;
+                    newRoom.containsMonster = true;
                 }
                 if (x == 2 && y == 0)
                 {
@@ -105,6 +107,7 @@ public class ServerDataHolder : MonoBehaviour
 
         startIndex = new int[] { 0, 0 };
         activePlayerIDs = new List<int>();
+        activeMonsters = new List<int[]>();
         //set all players data room to start room. and add their ids to the active dungeon ids list
         foreach(PlayerData player in players)
         {
@@ -127,6 +130,14 @@ public class ServerDataHolder : MonoBehaviour
         List<int> otherPlayerIDs = GetOtherPlayerIDsInSameRoom(data);
         Debug.Log("amount of other players ids in that room" + otherPlayerIDs.Count);
 
+        if (room.containsMonster)
+        {
+            if (activeMonsters.Contains(data.roomID))
+            {
+                activeMonsters.Add(data.roomID);
+            }
+        }
+
         return new RoomInfoMessage()
         {
             MoveDirections = room.GetDirsByte(),
@@ -145,13 +156,13 @@ public class ServerDataHolder : MonoBehaviour
 
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].roomID[0] == data.roomID[0] && players[i].roomID[1] == data.roomID[1] && players[i].playerIndex != data.playerIndex && players[i].activeInDungeon)
+            if (players[i].roomID[0] == data.roomID[0] && players[i].roomID[1] == data.roomID[1] && players[i].playerIndex != data.playerIndex && players[i].activeInDungeon && players[i].hp > 0)
             {
                 result.Add(players[i].playerIndex);
-            }
+            } 
         }
         return result;
-    }
+    } 
 
     public List<int> GetPlayerIDsRoom(RoomData data)
     {

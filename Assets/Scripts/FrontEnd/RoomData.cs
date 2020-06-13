@@ -14,7 +14,7 @@ public enum DirectionEnum
 
 public class Directions
 {
-    public bool North;
+    public bool North; 
     public bool East;
     public bool South;
     public bool West;
@@ -26,6 +26,7 @@ public class RoomData
     public Directions directions = new Directions();
     public int treasureAmmount = 0;
     public bool containsMonster = false;
+    public int monsterHP = 10;
     public bool containsExit = false;
     public int numberOfOtherPlayers = 0;
     public List<int> otherPlayersIDs = new List<int>();

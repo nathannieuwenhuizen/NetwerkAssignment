@@ -1,6 +1,6 @@
 ﻿using Unity.Networking.Transport;
 
-public class PLayerDiesMessage : MessageHeader
+public class PlayerDiesMessage : MessageHeader
 {
     public override MessageType Type => MessageType.playerDies;
 

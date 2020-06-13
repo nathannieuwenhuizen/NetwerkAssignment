@@ -154,8 +154,6 @@ public class ServerBehaviour : MonoBehaviour
                             NewPlayerJoined(connections[i]);
 
                             break;
-                        case MessageHeader.MessageType.requestDenied:
-                            break;
                         case MessageHeader.MessageType.playerLeft:
                             break;
                         case MessageHeader.MessageType.moveRequest:
@@ -179,6 +177,18 @@ public class ServerBehaviour : MonoBehaviour
                             var leaveDungeonRequest = new LeavesDungeonRequestMessage();
                             leaveDungeonRequest.DeserializeObject(ref reader);
                             HandleLeaveDungeonRequest(leaveDungeonRequest, i);
+                            break;
+
+                        case MessageHeader.MessageType.defendRequest:
+                            var defendRequest = new DefendRequestMessage();
+                            defendRequest.DeserializeObject(ref reader);
+                            HandleDefendRequest(defendRequest, i);
+                            break;
+
+                        case MessageHeader.MessageType.attackRequest:
+                            var attackRequest = new AttackRequestMessage();
+                            attackRequest.DeserializeObject(ref reader);
+                            HandleAttackRequest(attackRequest, i);
                             break;
 
                         default:
@@ -281,8 +291,9 @@ public class ServerBehaviour : MonoBehaviour
 
         int[] nextRoom = serverDataHolder.GetNextRoomID(currentRoom, message.Direction);
 
-        //check if player can move to that direction
-        if (nextRoom == null)
+        bool monsterActive = currentRoom.containsMonster && currentRoom.monsterHP > 0;
+        //check if player can move to that direction and if the monster in current room is killed or doesnt exist
+        if (nextRoom == null || monsterActive )
         {
             //handle requestdenied message
             Debug.LogWarning("Request denied");
@@ -320,6 +331,110 @@ public class ServerBehaviour : MonoBehaviour
         return true;
     }
 
+    public void HandleAttackRequest(AttackRequestMessage message, int connectID)
+    {
+        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
+        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
+
+        //check treasure even has ammount
+        if (currentRoom.containsMonster == false)
+        {
+            //if not then send request denied
+            RequestDenied(message, connectID);
+            return;
+        }
+
+        //then update data in room
+        currentRoom.monsterHP -= 6;
+        if (currentRoom.monsterHP <= 0)
+        {
+            currentRoom.containsMonster = false;
+            serverDataHolder.activeMonsters.Remove(playerData.roomID);
+        }
+
+        //send hit message back to all players in room
+        List<int> ids = serverDataHolder.GetOtherPlayerIDsInSameRoom(playerData);
+        ids.Add(connectID);
+        HitMonsterMessage hitMessage = new HitMonsterMessage()
+        {
+            PlayerID = connectID,
+            damageDealt = 6
+        };
+        foreach (int id in ids)
+        {
+            SendMessage(hitMessage, connections[serverDataHolder.players.Find(x => x.playerIndex == id).playerIndex]);
+        }
+
+        NextPlayerTurn();
+    }
+
+    public void HandleDefendRequest(DefendRequestMessage message, int connectID)
+    {
+        PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
+        RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
+
+        //check treasure even has ammount
+        if (currentRoom.containsMonster == false)
+        {
+            //if not then send request denied
+            RequestDenied(message, connectID);
+            return;
+        }
+
+        //then update data in player
+        playerData.hp += 4;
+
+        //send  message back to player
+        PlayerDefendsMessage hitMessage = new PlayerDefendsMessage()
+        {
+            PlayerID = connectID,
+            newHP = (ushort)playerData.hp
+        };
+        SendMessage(hitMessage, connections[connectID]);
+
+        NextPlayerTurn();
+    }
+
+    public void MonsterAttacks(int[] roomID)
+    {
+        //get room
+        RoomData currentRoom = serverDataHolder.rooms[roomID[0], roomID[1]];
+
+        //get players insideof room 
+        List<int> playerIDs = serverDataHolder.GetPlayerIDsRoom(currentRoom);
+
+        if (playerIDs.Count == 0) {
+            NextPlayerTurn();
+            return; //oops...
+        }
+
+        int targetID = Mathf.FloorToInt(Random.Range(0, playerIDs.Count));
+
+        PlayerData data = serverDataHolder.players.Find(x => x.playerIndex == targetID);
+        data.hp -= 3;
+        if (data.hp <= 0)
+        {
+            //player dies
+            PlayerDiesMessage dieMessage = new PlayerDiesMessage()
+            {
+                PlayerID = targetID
+            };
+            SendMessageToAll(dieMessage);
+        }
+        else
+        {
+            HitByMonsterMessage hitByMessage = new HitByMonsterMessage()
+            {
+                PlayerID = targetID,
+                newHP = (ushort)data.hp
+            };
+
+            foreach (int id in playerIDs)
+            {
+                SendMessage(hitByMessage, connections[id]);
+            }
+        }
+    }
 
     public void NextPlayerTurn()
     {
@@ -332,10 +447,21 @@ public class ServerBehaviour : MonoBehaviour
             EndGame();
             return;
         }
-        serverDataHolder.turnID = serverDataHolder.activePlayerIDs[(serverDataHolder.turnID + 1) % serverDataHolder.activePlayerIDs.Count];
+        serverDataHolder.turnID += 1;
+
+        if (serverDataHolder.turnID == serverDataHolder.activePlayerIDs.Count)
+        {
+            //monsters now attack!
+            foreach(int[] monsterID in serverDataHolder.activeMonsters)
+            {
+                MonsterAttacks(monsterID);
+            }
+            serverDataHolder.turnID = 0;
+        }
+
         PlayerTurnMessage turnMessage = new PlayerTurnMessage
         {
-            PlayerID = serverDataHolder.turnID 
+            PlayerID = serverDataHolder.activePlayerIDs[serverDataHolder.turnID]
         };
         SendMessageToAll(turnMessage);
     }
