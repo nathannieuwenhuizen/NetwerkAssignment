@@ -25,6 +25,11 @@ public class Lobby : MonoBehaviour
     [SerializeField]
     private GameObject startButton;
 
+    [SerializeField]
+    private Toggle localToggle;
+    [SerializeField]
+    private InputField ipField;
+
     public bool isHost = false;
 
     private ClientBehaviour clientB;
@@ -38,6 +43,12 @@ public class Lobby : MonoBehaviour
 
     public void CreateClient(bool _isHost = false)
     {
+        Tools.LOCAL = localToggle.isOn;
+        Tools.IP = ipField.text;
+
+        localToggle.gameObject.SetActive(false);
+        ipField.gameObject.SetActive(false);
+
         isHost = _isHost;
 
         GameObject client = new GameObject("client");

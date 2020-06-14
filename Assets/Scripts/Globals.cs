@@ -24,4 +24,7 @@ public static class Tools
         }
         return null;
     }
+
+    public static bool LOCAL;
+    public static string IP;
 }

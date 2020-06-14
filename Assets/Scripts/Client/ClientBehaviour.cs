@@ -24,10 +24,18 @@ public class ClientBehaviour : MonoBehaviour
         networkDriver = NetworkDriver.Create();
         connection = default;
 
-        var endpoint = NetworkEndPoint.LoopbackIpv4;
-        //var endpoint = NetworkEndPoint.Parse("77.167.147.11", 9000);
-        endpoint.Port = 9000;
-        connection = networkDriver.Connect(endpoint);
+        if (Tools.LOCAL)
+        {
+            var endpoint = NetworkEndPoint.LoopbackIpv4;
+            endpoint.Port = 9000;
+            connection = networkDriver.Connect(endpoint);
+
+        }
+        else
+        {
+            var endpoint = NetworkEndPoint.Parse(Tools.IP, 9000);
+            connection = networkDriver.Connect(endpoint);
+        }
     }
 
     void Update()

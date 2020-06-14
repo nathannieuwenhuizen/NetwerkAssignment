@@ -30,8 +30,14 @@ public class ServerBehaviour : MonoBehaviour
         serverDataHolder = new ServerDataHolder();
 
         networkDriver = NetworkDriver.Create();
+
         NetworkEndPoint endPoint = NetworkEndPoint.AnyIpv4; //might use var instead
         endPoint.Port = 9000;
+
+        if (!Tools.LOCAL)
+        {
+            endPoint = NetworkEndPoint.Parse(Tools.IP, 9000);
+        }
 
         if (networkDriver.Bind(endPoint) != 0)
         {
