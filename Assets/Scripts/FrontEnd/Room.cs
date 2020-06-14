@@ -34,7 +34,8 @@ public class Room : MonoBehaviour
     private Text hp;
     [SerializeField]
     private Text score;
-
+    [SerializeField]
+    private Text gameOverText;
 
     private bool IminDungeon = true;
 
@@ -92,6 +93,7 @@ public class Room : MonoBehaviour
     public void UpdateHPText()
     {
         hp.text = "HP: " + dataHolder.myData.hp;
+        monster.obj.GetComponentInChildren<TextMesh>().text = "HP: " + roomData.monsterHP;
     }
 
     public void UpdateUI(bool myTurn, int playerID)
@@ -100,13 +102,14 @@ public class Room : MonoBehaviour
 
         foreach(ButtonObject door in doors)
         {
-            door.SetButtons(myTurn);
+            door.SetButtons(myTurn && !roomData.containsMonster);
         }
-        treasure.SetButtons(myTurn);
-        exit.SetButtons(myTurn);
+        treasure.SetButtons(myTurn && !roomData.containsMonster);
+        exit.SetButtons(myTurn && !roomData.containsMonster);
         monster.SetButtons(myTurn);
 
         hp.text = "HP: " + dataHolder.myData.hp;
+        monster.obj.GetComponentInChildren<TextMesh>().text = "HP: " + roomData.monsterHP;
         score.text = "Score: " + dataHolder.myData.score;
 
         string name = "";
@@ -138,9 +141,16 @@ public class Room : MonoBehaviour
         IminDungeon = false;
     }
 
+    public void GameOver()
+    {
+        dataHolder.myData.hp = 0;
+        UpdatePlayerUIElements();
+        gameOverText.gameObject.SetActive(true);
+    }
+
     public void UpdatePlayerUIElements()
     {
-        myPlayerObj.SetActive(IminDungeon);
+        myPlayerObj.SetActive(IminDungeon && dataHolder.myData.hp > 0);
         myPlayerObj.GetComponentInChildren<TextMesh>().text = dataHolder.myData.name; 
         myPlayerObj.GetComponent<SpriteRenderer>().color = dataHolder.myData.color;
 

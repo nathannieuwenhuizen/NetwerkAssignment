@@ -218,12 +218,16 @@ public class ServerBehaviour : MonoBehaviour
         PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
         RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
 
+        Debug.Log("leave dungeon id = " + connectID);
+
         //check if player can leave dungeon
         if (!currentRoom.containsExit)
         {
             RequestDenied(message, connectID);
             return;
         }
+
+        Debug.Log("leave ID = " + connectID);
 
         //edit the list
         serverDataHolder.activePlayerIDs.Remove(connectID); //needs testing
@@ -336,6 +340,14 @@ public class ServerBehaviour : MonoBehaviour
         PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
         RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
 
+        //monster adds player to target list
+        Monster monster = serverDataHolder.activeMonsters.Find(x => x.roomID == playerData.roomID);
+        if (!monster.targetPlayers.Contains(playerData.playerIndex))
+        {
+            monster.targetPlayers.Add(playerData.playerIndex);
+        }
+
+
         //check treasure even has ammount
         if (currentRoom.containsMonster == false)
         {
@@ -349,7 +361,7 @@ public class ServerBehaviour : MonoBehaviour
         if (currentRoom.monsterHP <= 0)
         {
             currentRoom.containsMonster = false;
-            serverDataHolder.activeMonsters.Remove(playerData.roomID);
+            serverDataHolder.activeMonsters.Remove(serverDataHolder.activeMonsters.Find(x => x.roomID == playerData.roomID));
         }
 
         //send hit message back to all players in room
@@ -373,6 +385,13 @@ public class ServerBehaviour : MonoBehaviour
         PlayerData playerData = serverDataHolder.players.Find(x => x.playerIndex == connectID);
         RoomData currentRoom = serverDataHolder.rooms[playerData.roomID[0], playerData.roomID[1]];
 
+        //monster adds player to target list
+        Monster monster = serverDataHolder.activeMonsters.Find(x => x.roomID == playerData.roomID);
+        if (!monster.targetPlayers.Contains(playerData.playerIndex))
+        {
+            monster.targetPlayers.Add(playerData.playerIndex);
+        }
+
         //check treasure even has ammount
         if (currentRoom.containsMonster == false)
         {
@@ -385,85 +404,125 @@ public class ServerBehaviour : MonoBehaviour
         playerData.hp += 4;
 
         //send  message back to player
-        PlayerDefendsMessage hitMessage = new PlayerDefendsMessage()
+        PlayerDefendsMessage defendMessage = new PlayerDefendsMessage()
         {
             PlayerID = connectID,
             newHP = (ushort)playerData.hp
         };
-        SendMessage(hitMessage, connections[connectID]);
+        SendMessage(defendMessage, connections[connectID]);
 
         NextPlayerTurn();
     }
 
-    public void MonsterAttacks(int[] roomID)
+    public IEnumerator MonsterAttacks(Monster monster)
     {
+        networkJobHandle.Complete();
+
         //get room
-        RoomData currentRoom = serverDataHolder.rooms[roomID[0], roomID[1]];
+        RoomData currentRoom = serverDataHolder.rooms[monster.roomID[0], monster.roomID[1]];
 
         //get players insideof room 
-        List<int> playerIDs = serverDataHolder.GetPlayerIDsRoom(currentRoom);
+        List<int> playerIDs = monster.targetPlayers;
 
-        if (playerIDs.Count == 0) {
-            NextPlayerTurn();
-            return; //oops...
-        }
+        Debug.Log("Monster attack!" + playerIDs.Count);
 
-        int targetID = Mathf.FloorToInt(Random.Range(0, playerIDs.Count));
-
-        PlayerData data = serverDataHolder.players.Find(x => x.playerIndex == targetID);
-        data.hp -= 3;
-        if (data.hp <= 0)
+        if (playerIDs.Count != 0)
         {
-            //player dies
-            PlayerDiesMessage dieMessage = new PlayerDiesMessage()
-            {
-                PlayerID = targetID
-            };
-            SendMessageToAll(dieMessage);
-        }
-        else
-        {
-            HitByMonsterMessage hitByMessage = new HitByMonsterMessage()
-            {
-                PlayerID = targetID,
-                newHP = (ushort)data.hp
-            };
+            yield return new WaitForSeconds(.1f);
+            networkJobHandle.Complete();
 
-            foreach (int id in playerIDs)
+            int randomIndex = Mathf.FloorToInt(Random.Range(0, playerIDs.Count));
+
+            PlayerData data = serverDataHolder.players.Find(x => x.playerIndex == monster.targetPlayers[randomIndex]);
+
+            data.hp -= 3;
+            Debug.Log("random index = " +randomIndex+  "hp" + data.hp);
+            Debug.Log(" id = " +playerIDs[randomIndex]);
+            Debug.Log("target id = " + monster.targetPlayers[randomIndex]);
+             
+            if (data.hp <= 0) 
             {
-                SendMessage(hitByMessage, connections[id]);
+                data.hp = 0;
+                //player dies 
+                PlayerDiesMessage dieMessage = new PlayerDiesMessage()
+                {
+                    PlayerID = monster.targetPlayers[randomIndex]
+                };
+                monster.targetPlayers.Remove(monster.targetPlayers[randomIndex]);
+
+                serverDataHolder.activePlayerIDs.Remove(data.playerIndex);
+                if (serverDataHolder.activePlayerIDs.Count == 0)
+                {
+                    EndGame();
+                }
+                SendMessageToAll(dieMessage);
+            }
+            else
+            {
+                HitByMonsterMessage hitByMessage = new HitByMonsterMessage()
+                {
+                    PlayerID = randomIndex,
+                    newHP = (ushort)data.hp
+                };
+
+                foreach (int id in playerIDs)
+                {
+                    SendMessage(hitByMessage, connections[id]);
+                }
             }
         }
     }
 
-    public void NextPlayerTurn()
+    public void PlayerDies()
     {
 
-        //check if all player left dungeon
+    }
 
+    public void NextPlayerTurn()
+    {
+        StartCoroutine(Turning());
+    }
+    public IEnumerator Turning()
+    {
+
+        yield return new WaitForFixedUpdate();
+        networkJobHandle.Complete();
+
+        //check if all player left dungeon
+        Debug.Log("next player turn...amount of active players" + serverDataHolder.activePlayerIDs.Count);
         if (serverDataHolder.activePlayerIDs.Count == 0)
         {
             //endgame!
             EndGame();
-            return;
         }
-        serverDataHolder.turnID += 1;
-
-        if (serverDataHolder.turnID == serverDataHolder.activePlayerIDs.Count)
+        else
         {
-            //monsters now attack!
-            foreach(int[] monsterID in serverDataHolder.activeMonsters)
+
+            serverDataHolder.turnID += 1;
+
+            if (serverDataHolder.turnID >= serverDataHolder.activePlayerIDs.Count)
             {
-                MonsterAttacks(monsterID);
-            }
-            serverDataHolder.turnID = 0;
-        }
+                Debug.Log("end of loop.");
+                Debug.Log(serverDataHolder.activeMonsters.Count);
 
-        PlayerTurnMessage turnMessage = new PlayerTurnMessage
-        {
-            PlayerID = serverDataHolder.activePlayerIDs[serverDataHolder.turnID]
-        };
-        SendMessageToAll(turnMessage);
+                //monsters now attack!
+                foreach (Monster monster in serverDataHolder.activeMonsters)
+                {
+                    yield return StartCoroutine(MonsterAttacks(monster));
+                    networkJobHandle.Complete();
+                }
+                serverDataHolder.turnID = 0;
+            }
+            
+            if (serverDataHolder.activePlayerIDs.Count > serverDataHolder.turnID)
+            {
+                PlayerTurnMessage turnMessage = new PlayerTurnMessage
+                {
+                    PlayerID = serverDataHolder.activePlayerIDs[serverDataHolder.turnID]
+                };
+                SendMessageToAll(turnMessage);
+            } 
+        }
     }
 
     public void EndGame()

@@ -204,7 +204,7 @@ public class ClientBehaviour : MonoBehaviour
     }
 
 
-    public void HitMonster(ref DataStreamReader reader) //probably nothing... well
+    public void HitMonster(ref DataStreamReader reader) 
     {
         var message = new HitMonsterMessage();
         message.DeserializeObject(ref reader);
@@ -214,8 +214,9 @@ public class ClientBehaviour : MonoBehaviour
         {
             dataHolder.game.cRoom.roomData.containsMonster = false;
         }
+        dataHolder.game.cRoom.UpdateHPText();
         dataHolder.game.cRoom.UpdateRoom();
-    }
+    } 
 
     public void HitByMonster(ref DataStreamReader reader)
     {
@@ -234,7 +235,13 @@ public class ClientBehaviour : MonoBehaviour
         var message = new PlayerDiesMessage();
         message.DeserializeObject(ref reader);
 
-        dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
+        if (message.PlayerID == dataHolder.myData.playerIndex)
+        {
+            dataHolder.game.cRoom.GameOver();
+        } else
+        {
+            dataHolder.game.cRoom.PlayerLeftRoom(dataHolder.players.Find(x => x.playerIndex == message.PlayerID));
+        }
         dataHolder.game.cRoom.UpdatePlayerUIElements(); 
     }
 

@@ -5,12 +5,17 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+public class Monster
+{
+    public int[] roomID;
+    public List<int> targetPlayers = new List<int>();
+}
 public class ServerDataHolder : MonoBehaviour
 {
 
     public List<PlayerData> players;
     public List<int> activePlayerIDs;
-    public List<int[]> activeMonsters;
+    public List<Monster> activeMonsters;
 
     public RoomData[,] rooms;
     public int[] startIndex;
@@ -28,6 +33,8 @@ public class ServerDataHolder : MonoBehaviour
 
         for (int x = 0; x < roomSize; x++)
         {
+            int containsMonsterID = Mathf.FloorToInt(UnityEngine.Random.Range(0, roomSize));
+
             for (int y = 0; y < roomSize; y++)
             {
                 RoomData newRoom = new RoomData()
@@ -40,17 +47,35 @@ public class ServerDataHolder : MonoBehaviour
                         West = x > 0
                     }
                 };
-                if (x == 1 && y == 0)
+
+                //monster placement
+                if (y == containsMonsterID)
                 {
                     newRoom.containsMonster = true;
+                    if (UnityEngine.Random.value > .5f)
+                    {
+                        newRoom.treasureAmmount = 100;
+                    }
                 }
-                if (x == 2 && y == 0)
+
+                //treasure placement
+                if (UnityEngine.Random.value > .5f)
                 {
                     newRoom.treasureAmmount = 100;
+                }
+
+                //end room with monster
+                if (x == 0 && y == 0)
+                {
+                    newRoom.containsExit = true;
+                    newRoom.treasureAmmount = 100;
+                    newRoom.containsMonster = true;
                 }
                 rooms[x, y] = newRoom;
             }
         }
+
+
     }
 
     //gets the room that is connected to the previous room if its not out of boundaries and has a door connected to it.
@@ -105,17 +130,19 @@ public class ServerDataHolder : MonoBehaviour
     {
         CreateRoomData();
 
-        startIndex = new int[] { 0, 0 };
+        //setup start room
+        startIndex = new int[] { roomSize -1, roomSize - 1};
+        rooms[startIndex[0], startIndex[1]].containsMonster = false;
+
         activePlayerIDs = new List<int>();
-        activeMonsters = new List<int[]>();
+        activeMonsters = new List<Monster>();
         //set all players data room to start room. and add their ids to the active dungeon ids list
         foreach(PlayerData player in players)
         {
             player.roomID = startIndex;
+            player.hp = 10; 
             activePlayerIDs.Add(player.playerIndex);
         }
-
-
     } 
 
     public RoomInfoMessage GetRoomMessage(int playerID)
@@ -124,17 +151,20 @@ public class ServerDataHolder : MonoBehaviour
 
         //get room data
         int[] roomIndex = data.roomID;
-        Debug.Log("room index: [" + roomIndex[0] + " , " + roomIndex[1] + " ]");
+        //Debug.Log("room index: [" + roomIndex[0] + " , " + roomIndex[1] + " ]");
         RoomData room = rooms[roomIndex[0], roomIndex[1]];
 
         List<int> otherPlayerIDs = GetOtherPlayerIDsInSameRoom(data);
-        Debug.Log("amount of other players ids in that room" + otherPlayerIDs.Count);
+        //Debug.Log("amount of other players ids in that room" + otherPlayerIDs.Count);
 
         if (room.containsMonster)
         {
-            if (activeMonsters.Contains(data.roomID))
+            Debug.Log("Monster is here");
+            if (!activeMonsters.Contains(activeMonsters.Find(x => x.roomID == data.roomID)))
             {
-                activeMonsters.Add(data.roomID);
+                activeMonsters.Add(new Monster() {
+                    roomID = data.roomID
+                });
             }
         }
 
