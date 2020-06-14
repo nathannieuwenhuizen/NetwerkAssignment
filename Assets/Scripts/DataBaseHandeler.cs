@@ -13,7 +13,8 @@ public static class DataBaseHandeler
     public static int userID = -1;
     public static string userNickname = "anonymous";
 
-    public static string base_url = "http://localhost/kernmodule4/";
+    //public static string base_url = "http://localhost/kernmodule4/";
+    public static string base_url = "https://studenthome.hku.nl/~nathan.nieuwenhuizen/assets/kernmodule4/";
 
     public async static void GetHttpAsync()
     {
