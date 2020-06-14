@@ -11,6 +11,7 @@ public class DataHolder : MonoBehaviour
 
     public Lobby lobby;
     public Game game;
+    public ResultScreen resultScreen;
     public ClientBehaviour client;
 
     void Start()
@@ -24,10 +25,19 @@ public class DataHolder : MonoBehaviour
         //SceneManager.LoadScene("Game");
         lobby.gameObject.SetActive(false);
         game = Instantiate(Resources.Load<GameObject>("Game") as GameObject).GetComponent<Game>();
-        game.gameObject.name = "Game of player: " + myData.name;
+        game.gameObject.name = "Game of player: " + myData.playerIndex;
         game.cRoom.dataHolder = this;
         game.dataHolder = this;
         game.SetupGame();
+    }
+
+    public void ShowEndScreen(EndGameMessage message)
+    {
+        game.gameObject.SetActive(false);
+        resultScreen = Instantiate(Resources.Load<GameObject>("ResultScreen") as GameObject).GetComponent<ResultScreen>();
+        resultScreen.gameObject.name = "Result of player: " + myData.playerIndex;
+
+        resultScreen.ShowScore(message, players);
     }
 
 

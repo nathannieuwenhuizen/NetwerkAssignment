@@ -294,8 +294,8 @@ public class ClientBehaviour : MonoBehaviour
 
         HighScorePair[] endScores = message.PlayerIDHighscorePairs;
 
-        Destroy(dataHolder.game.gameObject);
-        dataHolder.game = null;
+        dataHolder.ShowEndScreen(message);
+
     }
 
     private void ObtainTreasure(ref DataStreamReader reader)

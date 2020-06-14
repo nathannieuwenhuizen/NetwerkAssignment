@@ -85,7 +85,7 @@ public class Lobby : MonoBehaviour
 
         foreach(PlayerData data in datas)
         {
-            content += " | #" + data.playerIndex + ", " + data.name + ", color: " + data.color.r + data.color.g + data.color.b + "\n /n";
+            content += " | #" + data.playerIndex + ", " + data.name + ", color: " + data.color.r + data.color.g + data.color.b + "\n";
         }
         listContent.text = content;
     }
