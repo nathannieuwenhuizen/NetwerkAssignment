@@ -5,10 +5,6 @@ $db_pass = "";
 $db_host = "localhost";
 $db_name = "kernmodule4db";
 
-$db_user = 'nathannieuwenhui';
-$db_pass = 'aiShazi5Oo';
-$db_host = 'localhost';
-$db_name = 'nathannieuwenhui';
 
 /* Open a connection */
 $mysqli = new mysqli($db_host,$db_user,$db_pass,$db_name);

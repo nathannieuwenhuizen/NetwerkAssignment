@@ -445,9 +445,9 @@ public class ServerBehaviour : MonoBehaviour
             PlayerData data = serverDataHolder.players.Find(x => x.playerIndex == monster.targetPlayers[randomIndex]);
 
             data.hp -= 3;
-            Debug.Log("random index = " +randomIndex+  "hp" + data.hp);
-            Debug.Log(" id = " +playerIDs[randomIndex]);
-            Debug.Log("target id = " + monster.targetPlayers[randomIndex]);
+            //Debug.Log("random index = " +randomIndex+  "hp" + data.hp);
+            //Debug.Log(" id = " +playerIDs[randomIndex]);
+            //Debug.Log("target id = " + monster.targetPlayers[randomIndex]);
              
             if (data.hp <= 0) 
             {
