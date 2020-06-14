@@ -95,6 +95,9 @@ public class ServerBehaviour : MonoBehaviour
         NetworkConnection newConnection;
         while ((newConnection = networkDriver.Accept()) != default)
         {
+            if (connections.Length >= 4) {
+                return;
+            }
             connections.Add(newConnection);
             //Debug.Log("Accepted new connection");
 

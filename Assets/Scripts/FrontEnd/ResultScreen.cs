@@ -24,12 +24,16 @@ public class ResultScreen : MonoBehaviour
         SceneManager.LoadScene(0);
     }
 
-    public void ShowScore(EndGameMessage message, List<PlayerData> players)
+    public void ShowScore(EndGameMessage message, List<PlayerData> players, PlayerData myData)
     {
 
         List<HighScorePair> highscores = new List<HighScorePair>();
         for (int i = 0; i < message.PlayerIDHighscorePairs.Length; i++)
         {
+            if (myData.playerIndex == message.PlayerIDHighscorePairs[i].playerID)
+            {
+                myData.score = message.PlayerIDHighscorePairs[i].score;
+            }
             highscores.Add(message.PlayerIDHighscorePairs[i]);
         }
         highscores = highscores.OrderBy(x => x.score).Reverse().ToList();
@@ -41,6 +45,15 @@ public class ResultScreen : MonoBehaviour
         {
             nameText.text += players.Find(x => x.playerIndex == scores.playerID).name + "\n";
             scoreText.text += scores.score + "\n";
+        }
+
+        //upload score
+        if (DataBaseHandeler.userID != -1)
+        {
+            Debug.Log("user: " + DataBaseHandeler.userID);
+            Debug.Log("score: " + myData.score);
+            string url = "score_insert.php?user=" + DataBaseHandeler.userID + "&score=" + myData.score + "&session_id=" + DataBaseHandeler.sessionID;
+            StartCoroutine(DataBaseHandeler.GetHttp(url));
         }
 
     }

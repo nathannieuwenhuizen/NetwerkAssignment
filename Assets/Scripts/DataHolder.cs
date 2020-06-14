@@ -23,7 +23,7 @@ public class DataHolder : MonoBehaviour
     public void StartGame()
     {
         //SceneManager.LoadScene("Game");
-        lobby.gameObject.SetActive(false);
+        lobby.gameObject.SetActive(false); 
         game = Instantiate(Resources.Load<GameObject>("Game") as GameObject).GetComponent<Game>();
         game.gameObject.name = "Game of player: " + myData.playerIndex;
         game.cRoom.dataHolder = this;
@@ -37,7 +37,7 @@ public class DataHolder : MonoBehaviour
         resultScreen = Instantiate(Resources.Load<GameObject>("ResultScreen") as GameObject).GetComponent<ResultScreen>();
         resultScreen.gameObject.name = "Result of player: " + myData.playerIndex;
 
-        resultScreen.ShowScore(message, players);
+        resultScreen.ShowScore(message, players, myData);
     }
 
 

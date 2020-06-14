@@ -29,11 +29,11 @@ public class Lobby : MonoBehaviour
 
     private ClientBehaviour clientB;
 
-    public void Start()
+    public void Setup()
     {
         startButton.SetActive(false);
         setNameButton.SetActive(false);
-        listObject.SetActive(false);
+        listObject.SetActive(false); 
     }
 
     public void CreateClient(bool _isHost = false)
@@ -49,20 +49,14 @@ public class Lobby : MonoBehaviour
 
         connectClientButton.SetActive(false);
         connectHostButton.SetActive(false);
-        setNameField.gameObject.SetActive(true);
-        setNameButton.SetActive(true);
+        //setNameField.gameObject.SetActive(true);
+        //setNameButton.SetActive(true);
     }
 
     public void SetName()
     {
         setNameButton.SetActive(false);
         setNameField.gameObject.SetActive(false);
-
-        var setNameMessage = new SetNameMessage
-        {
-            Name = "" + setNameField.text
-        };
-        clientB.SendMessage(setNameMessage);
     }
 
     public void StartGame()

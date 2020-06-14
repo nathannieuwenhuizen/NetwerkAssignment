@@ -147,6 +147,13 @@ public class ClientBehaviour : MonoBehaviour
         welcomeMessage.DeserializeObject(ref reader);
         dataHolder.myData.playerIndex = welcomeMessage.PlayerID;
         dataHolder.myData.color = UIntToColor(welcomeMessage.Colour);
+
+        var setNameMessage = new SetNameMessage
+        {
+            Name = DataBaseHandeler.userNickname
+        };
+        SendMessage(setNameMessage);
+
     }
 
     private void GetRoomInfo(ref DataStreamReader reader)
