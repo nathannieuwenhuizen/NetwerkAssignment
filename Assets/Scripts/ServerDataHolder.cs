@@ -133,8 +133,9 @@ public class ServerDataHolder : MonoBehaviour
         //setup start room
         startIndex = new int[] { roomSize -1, roomSize - 1};
         rooms[startIndex[0], startIndex[1]].containsMonster = false;
-        rooms[startIndex[0], startIndex[1]].containsExit = true;
-        rooms[startIndex[0], startIndex[1]].treasureAmmount = 100;
+
+        //rooms[startIndex[0], startIndex[1]].containsExit = true;
+        //rooms[startIndex[0], startIndex[1]].treasureAmmount = 100; 
 
         activePlayerIDs = new List<int>();
         activeMonsters = new List<Monster>();

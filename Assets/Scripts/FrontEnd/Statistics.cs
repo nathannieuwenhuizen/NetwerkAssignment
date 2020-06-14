@@ -29,7 +29,7 @@ public class Statistics : MonoBehaviour
         nameText.text = "";
         scoreText.text = "";
 
-        foreach (DatabaseHighScore scores in highscores.allTime)
+        foreach (DatabaseHighScore scores in highscores.topofmonth)
         {
             Debug.Log("Gemiddelde: " + scores.gemiddelde);
             nameText.text += scores.first_name + " " + scores.last_name + "\n";
@@ -42,7 +42,7 @@ public class Statistics : MonoBehaviour
 [System.Serializable]
 public class DataBaseStatistic
 {
-    public DatabaseHighScore[] allTime;
+    public DatabaseHighScore[] topofmonth;
     public int test;
 }
 [System.Serializable]
